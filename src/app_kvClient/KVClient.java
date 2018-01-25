@@ -1,9 +1,12 @@
 package app_kvClient;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -11,158 +14,110 @@ import org.apache.log4j.Logger;
 import logger.LogSetup;
 
 import client.KVCommInterface;
+import client.KVClientSocketListener.SocketStatus;
 
-public class KVClient implements IKVClient {
+public class KVClient extends Thread implements IKVClient {
 
-	private static Logger logger = Logger.getRootLogger();
-	private static final String PROMPT = "KVClient> ";
-	private BufferedReader stdin;
-	private boolean stop = false;
+    private Logger logger = Logger.getRootLogger();
+    private Set<KVClientSocketListener> listeners;
+    private boolean running;
+    
+    private Socket clientSocket;
+    private OutputStream output;
+    private InputStream input;
+    
+    private static final int BUFFER_SIZE = 1024;
+    private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
 
-	private String serverAddress;
-	private int serverPort;
+    public KVClient(String address, int port) 
+            throws UnknownHostException, IOException {
+        newConnection(address, port);
+    }
 
     @Override
     public void newConnection(String hostname, int port) throws Exception{
-        // TODO Auto-generated method stub
+        clientSocket = new Socket(address, port);
+        listeners = new HashSet<KVClientSocketListener>();
+        setRunning(true);
+        logger.info("Connection established");
     }
 
     @Override
-    public KVCommInterface getStore(){
-        // TODO Auto-generated method stub
+    public KVCommInterface getStore() {
+        // Get the communication module
         return null;
     }
-  
-	public void run() {
-		while(!stop) {
-			stdin = new BufferedReader(new InputStreamReader(System.in));
-			System.out.print(PROMPT);
-			
-			try {
-				String cmdLine = stdin.readLine();
-				this.handleCommand(cmdLine);
-			} catch (IOException e) {
-				stop = true;
-				printError("CLI does not respond - Application terminated ");
-			}
-		}
-	}
 
-	private void handleCommand(String cmdLine) {
-		String[] tokens = cmdLine.split("\\s+");
-
-		if(tokens[0].equals("quit")) {
-			/*
-			stop = true;
-			disconnect();
-			System.out.println(PROMPT + "Application exit!");
-			*/
-		
-		} else if (tokens[0].equals("connect")){
-			/*
-			if(tokens.length == 3) {
-				try{
-					serverAddress = tokens[1];
-					serverPort = Integer.parseInt(tokens[2]);
-					connect(serverAddress, serverPort);
-				} catch(NumberFormatException nfe) {
-					printError("No valid address. Port must be a number!");
-					logger.info("Unable to parse argument <port>", nfe);
-				} catch (UnknownHostException e) {
-					printError("Unknown Host!");
-					logger.info("Unknown Host!", e);
-				} catch (IOException e) {
-					printError("Could not establish connection!");
-					logger.warn("Could not establish connection!", e);
-				}
-			} else {
-				printError("Invalid number of parameters!");
-			}
-			*/
-		} else  if (tokens[0].equals("send")) {
-			/*
-			if(tokens.length >= 2) {
-				if(client != null && client.isRunning()){
-					StringBuilder msg = new StringBuilder();
-					for(int i = 1; i < tokens.length; i++) {
-						msg.append(tokens[i]);
-						if (i != tokens.length -1 ) {
-							msg.append(" ");
-						}
-					}	
-					sendMessage(msg.toString());
-				} else {
-					printError("Not connected!");
-				}
-			} else {
-				printError("No message passed!");
-			}
-			*/
-			
-		} else if(tokens[0].equals("disconnect")) {
-			/*
-			disconnect();
-			*/
-			
-		} else if(tokens[0].equals("logLevel")) {
-			/*
-			if(tokens.length == 2) {
-				String level = setLevel(tokens[1]);
-				if(level.equals(LogSetup.UNKNOWN_LEVEL)) {
-					printError("No valid log level!");
-					printPossibleLogLevels();
-				} else {
-					System.out.println(PROMPT + 
-							"Log level changed to level " + level);
-				}
-			} else {
-				printError("Invalid number of parameters!");
-			}
-			*/
-			
-		} else if(tokens[0].equals("help")) {
-			printHelp();
-		} else {
-			printError("Unknown command");
-			printHelp();
-		}
-	}
-
-	private void printHelp() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(PROMPT).append("KV CLIENT HELP (Usage):\n");
-		sb.append(PROMPT);
-		sb.append("::::::::::::::::::::::::::::::::");
-		sb.append("::::::::::::::::::::::::::::::::\n");
-		sb.append(PROMPT).append("connect <host> <port>");
-		sb.append("\t\t establishes a connection to a server\n");
-		sb.append(PROMPT).append("disconnect");
-		sb.append("\t\t\t disconnects from the server \n");
-		sb.append(PROMPT).append("put <key> <value>");
-		sb.append("\t\t Store a KV pair on the server \n");
-		sb.append(PROMPT).append("get <key>");
-		sb.append("\t\t\t Retrieve a KV pair on the server \n");
-		sb.append(PROMPT).append("logLevel");
-		sb.append("\t\t\t ");
-		sb.append("ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF \n");
-		sb.append(PROMPT).append("quit ");
-		sb.append("\t\t\t\t exits the program");
-		System.out.println(sb.toString());
-	}
-
-	private void printError(String error){
-		System.out.println(PROMPT + "Error! " +  error);
-	}
-
-    public static void main(String[] args) {
-    	try {
-			new LogSetup("logs/client.log", Level.OFF);
-			KVClient app = new KVClient();
-			app.run();
-		} catch (IOException e) {
-			System.out.println("Error! Unable to initialize logger!");
-			e.printStackTrace();
-			System.exit(1);
-		}
+    public void run() {
+        try {
+            output = clientSocket.getOutputStream();
+            input = clientSocket.getInputStream();
+            
+            while(isRunning()) {
+                try {
+                    TextMessage latestMsg = receiveMessage();
+                    for(ClientSocketListener listener : listeners) {
+                        listener.handleNewMessage(latestMsg);
+                    }
+                } catch (IOException ioe) {
+                    if(isRunning()) {
+                        logger.error("Connection lost!");
+                        try {
+                            tearDownConnection();
+                            for(ClientSocketListener listener : listeners) {
+                                listener.handleStatus(
+                                        SocketStatus.CONNECTION_LOST);
+                            }
+                        } catch (IOException e) {
+                            logger.error("Unable to close connection!");
+                        }
+                    }
+                }               
+            }
+        } catch (IOException ioe) {
+            logger.error("Connection could not be established!");
+            
+        } finally {
+            if(isRunning()) {
+                closeConnection();
+            }
+        }
     }
+
+    public void closeConnection() {
+        logger.info("try to close connection ...");
+        try {
+            tearDownConnection();
+            for(ClientSocketListener listener : listeners) {
+                listener.handleStatus(SocketStatus.DISCONNECTED);
+            }
+        } catch (IOException ioe) {
+            logger.error("Unable to close connection!");
+        }
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+    
+    public void setRunning(boolean run) {
+        running = run;
+    }
+
+    public void addListener(ClientSocketListener listener){
+        listeners.add(listener);
+    }
+
+    private void tearDownConnection() throws IOException {
+        setRunning(false);
+        logger.info("tearing down the connection ...");
+        if (clientSocket != null) {
+            //input.close();
+            //output.close();
+            clientSocket.close();
+            clientSocket = null;
+            logger.info("connection closed!");
+        }
+    }
+
 }
