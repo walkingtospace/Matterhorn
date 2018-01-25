@@ -27,18 +27,6 @@ public class ShellUI implements KVClientSocketListener {
     private String serverAddress;
     private int serverPort;
 
-    public static void main(String[] args) {
-        try {
-            new LogSetup("logs/client.log", Level.OFF);
-            KVClient app = new KVClient();
-            app.run();
-        } catch (IOException e) {
-            System.out.println("Error! Unable to initialize logger!");
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
     public void run() {
         while(!stop) {
             stdin = new BufferedReader(new InputStreamReader(System.in));
@@ -127,9 +115,9 @@ public class ShellUI implements KVClientSocketListener {
 
     private void connect(String address, int port) 
             throws UnknownHostException, IOException {
-        client = new Client(address, port);
+        client = new KVClient(address, port);
         client.addListener(this);
-        // client.run(); TODO: How to return without getting stuck
+        client.start();
     }
 
     private void disconnect() {
@@ -198,5 +186,16 @@ public class ShellUI implements KVClientSocketListener {
             return LogSetup.UNKNOWN_LEVEL;
         }
     }
-
+ 
+    public static void main(String[] args) {
+        try {
+            new LogSetup("logs/client.log", Level.OFF);
+            ShellUI shellui = new ShellUI();
+            shellui.run();
+        } catch (IOException e) {
+            System.out.println("Error! Unable to initialize logger!");
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
 }
