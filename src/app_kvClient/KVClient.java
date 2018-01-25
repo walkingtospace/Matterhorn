@@ -1,6 +1,7 @@
 package app_kvClient;
 
 import java.io.IOException;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -14,7 +15,8 @@ import org.apache.log4j.Logger;
 import logger.LogSetup;
 
 import client.KVCommInterface;
-import client.KVClientSocketListener.SocketStatus;
+import client.KVClientSocketListener;
+import client.KVClientSocketListener.SocketStatus;;
 
 public class KVClient extends Thread implements IKVClient {
 
@@ -31,12 +33,12 @@ public class KVClient extends Thread implements IKVClient {
 
     public KVClient(String address, int port) 
             throws UnknownHostException, IOException {
-        newConnection(address, port);
+        //newConnection(address, port);
     }
 
     @Override
     public void newConnection(String hostname, int port) throws Exception{
-        clientSocket = new Socket(address, port);
+        clientSocket = new Socket(hostname, port);
         listeners = new HashSet<KVClientSocketListener>();
         setRunning(true);
         logger.info("Connection established");
@@ -55,18 +57,19 @@ public class KVClient extends Thread implements IKVClient {
             
             while(isRunning()) {
                 try {
-                    TextMessage latestMsg = receiveMessage();
-                    for(ClientSocketListener listener : listeners) {
-                        listener.handleNewMessage(latestMsg);
-                    }
+                    //TextMessage latestMsg = receiveMessage();
+                    //for(KVClientSocketListener listener : listeners) {
+                    //    listener.handleNewMessage(latestMsg);
+                    //}
+                	throw new IOException(); // HACK: need to remove
                 } catch (IOException ioe) {
                     if(isRunning()) {
                         logger.error("Connection lost!");
                         try {
                             tearDownConnection();
-                            for(ClientSocketListener listener : listeners) {
-                                listener.handleStatus(
-                                        SocketStatus.CONNECTION_LOST);
+                            for(KVClientSocketListener listener : listeners) {
+                                //listener.handleStatus(
+                                //        SocketStatus.CONNECTION_LOST);
                             }
                         } catch (IOException e) {
                             logger.error("Unable to close connection!");
@@ -88,8 +91,8 @@ public class KVClient extends Thread implements IKVClient {
         logger.info("try to close connection ...");
         try {
             tearDownConnection();
-            for(ClientSocketListener listener : listeners) {
-                listener.handleStatus(SocketStatus.DISCONNECTED);
+            for(KVClientSocketListener listener : listeners) {
+                //listener.handleStatus(SocketStatus.DISCONNECTED);
             }
         } catch (IOException ioe) {
             logger.error("Unable to close connection!");
@@ -104,7 +107,7 @@ public class KVClient extends Thread implements IKVClient {
         running = run;
     }
 
-    public void addListener(ClientSocketListener listener){
+    public void addListener(KVClientSocketListener listener){
         listeners.add(listener);
     }
 
@@ -112,8 +115,6 @@ public class KVClient extends Thread implements IKVClient {
         setRunning(false);
         logger.info("tearing down the connection ...");
         if (clientSocket != null) {
-            //input.close();
-            //output.close();
             clientSocket.close();
             clientSocket = null;
             logger.info("connection closed!");
