@@ -171,8 +171,7 @@ public class KVServer implements IKVServer {
                 new FileReader(dbPath);
 
             // Always wrap FileReader in BufferedReader.
-            BufferedReader bufferedReader = 
-                new BufferedReader(fileReader);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
 
             while((line = bufferedReader.readLine()) != null) {
             	String[] pair = line.split(" ");
@@ -241,18 +240,18 @@ public class KVServer implements IKVServer {
         
         if(serverSocket != null) {
 	        while(running){
-//	            try {
-//	                Socket client = serverSocket.accept();                
-//	                KVClient connection = new KVClient(client);
-//	                new Thread(connection).start();
-//	                
-//	                logger.info("Connected to " 
-//	                		+ client.getInetAddress().getHostName() 
-//	                		+  " on port " + client.getPort());
-//	            } catch (IOException e) {
-//	            	logger.error("Error! " +
-//	            			"Unable to establish connection. \n", e);
-//	            }
+	            try {
+	                Socket client = serverSocket.accept();                
+	                ClientConnection connection = new ClientConnection(client);
+	                new Thread(connection).start();
+	                
+	                logger.info("Connected to " 
+	                		+ client.getInetAddress().getHostName() 
+	                		+  " on port " + client.getPort());
+	            } catch (IOException e) {
+	            	logger.error("Error! " +
+	            			"Unable to establish connection. \n", e);
+	            }
 	        }
         }
         logger.info("Server stopped.");
