@@ -1,7 +1,9 @@
 package client;
 
 import java.net.Socket;
-import java.util.HashSet;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import org.apache.log4j.Logger;
 
@@ -15,6 +17,8 @@ public class KVStore implements KVCommInterface {
 	 */
 	
 	private Socket socket;
+	private OutputStream output;
+ 	private InputStream input;
 	private String address;
 	private int port;
     private Logger logger = Logger.getRootLogger();
@@ -29,6 +33,8 @@ public class KVStore implements KVCommInterface {
 	public void connect() throws Exception {
 		try {
 	    	socket = new Socket(address, port);
+			output = socket.getOutputStream();
+			input = socket.getInputStream();
 	        logger.info("Connection established");
 		} catch(Exception e) {
 			logger.error("Connection could not be established!");
@@ -37,7 +43,18 @@ public class KVStore implements KVCommInterface {
 
 	@Override
 	public void disconnect() {
-		// TODO Auto-generated method stub
+		logger.info("tearing down the connection ...");
+		try {
+			if (socket != null) {
+				//input.close();
+				//output.close();
+				socket.close();
+				socket = null;
+				logger.info("connection closed!");
+			}
+		} catch(IOException ioe) {
+			logger.error("Unable to close connection!");
+		}
 	}
 
 	@Override
