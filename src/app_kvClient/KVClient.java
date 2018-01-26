@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import logger.LogSetup;
 
+import client.KVClientSocketListener;
 import client.KVCommInterface;
 import client.KVClientSocketListener.SocketStatus;
 

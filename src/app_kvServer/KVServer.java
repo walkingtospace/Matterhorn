@@ -21,6 +21,11 @@ import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import cache.KVCache;
+import cache.KVFIFOCache;
+import cache.KVLFUCache;
+import cache.KVLRUCache;
+
 import app_kvClient.KVClient;
 
 public class KVServer implements IKVServer {
@@ -42,6 +47,7 @@ public class KVServer implements IKVServer {
 	private int port;
 	private int cacheSize;
 	private CacheStrategy strategy;
+	private KVCache cache;
 	
 	private String dbPath = "db.txt";
 	
@@ -49,9 +55,27 @@ public class KVServer implements IKVServer {
 		this.port = port;
 		this.cacheSize = cacheSize;
 		this.strategy = CacheStrategy.valueOf(strategy);
+		this.cache = createCache(this.strategy);
 		this.run();
 	}
 
+	private KVCache createCache(CacheStrategy strategy){
+		KVCache cache = null;
+		switch (strategy) {
+			case LRU:
+				cache = new KVLRUCache(this.cacheSize);
+				break;
+			case FIFO:
+				cache = new KVFIFOCache(this.cacheSize);
+				break;
+			case LFU:
+				cache = new KVLFUCache(this.cacheSize);
+			default:
+				break;
+		}
+		return cache;
+	}
+	
 	@Override
 	public int getPort(){
 		return port;
@@ -117,12 +141,20 @@ public class KVServer implements IKVServer {
 
 	@Override
     public boolean inCache(String key){
-		// TODO Auto-generated method stub
+		if (cache != null && cache.get(key) != null) {
+			return true;
+		}
 		return false;
 	}
 
 	@Override
     public synchronized String getKV(String key) throws Exception{
+		if (cache != null) {
+			String value = cache.get(key);
+			if (value != null) {
+				return value;
+			}
+		}
 		String line = null;
 		String value = null;
 		try {
@@ -162,6 +194,15 @@ public class KVServer implements IKVServer {
 
 	@Override
     public synchronized void putKV(String key, String value) throws Exception{
+		if (cache != null) {
+			if (value == cache.get(key)) {
+				// Update recency in case of LRU or count in case of LFU.
+				cache.set(key, value);
+				// Avoid writing to DB.
+				return;
+			}
+			cache.set(key, value);
+		}
 		String oldContent = "";
 		String line = null;
 		int mode = 1; // mode: 1 -> rewrite database; 0 -> append database
@@ -218,7 +259,7 @@ public class KVServer implements IKVServer {
 
 	@Override
     public void clearCache(){
-		// TODO Auto-generated method stub
+		cache = createCache(strategy);
 	}
 
 	@Override
@@ -231,7 +272,7 @@ public class KVServer implements IKVServer {
 			logger.error("Error! " +
 	                "Unable to open database file '" + 
 	                dbPath + "'");
-		}	
+		}
 	}
 
 	@Override

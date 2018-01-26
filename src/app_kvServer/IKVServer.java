@@ -40,9 +40,9 @@ public interface IKVServer {
     public boolean inStorage(String key);
 
     /**
-     * Check if key is in storage.
+     * Check if key is in cache.
      * NOTE: does not modify any other properties
-     * @return  true if key in storage, false otherwise
+     * @return  true if key in cache, false otherwise
      */
     public boolean inCache(String key);
 
