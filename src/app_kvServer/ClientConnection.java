@@ -7,6 +7,8 @@ import java.net.Socket;
 
 import org.apache.log4j.*;
 
+import common.messages.TextMessage;
+
 
 /**
  * Represents a connection end point for a particular client that is 
