@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import org.apache.log4j.Logger;
 
 import common.messages.KVMessage;
+import common.messages.TextMessage;
 
 public class KVStore implements KVCommInterface {
 	/**
@@ -23,6 +24,8 @@ public class KVStore implements KVCommInterface {
 	private int port;
     private Logger logger = Logger.getRootLogger();
 
+	private static final int BUFFER_SIZE = 1024;
+	private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
 	
 	public KVStore(String input_address, int input_port) {
 		address = input_address;
@@ -59,13 +62,84 @@ public class KVStore implements KVCommInterface {
 
 	@Override
 	public KVMessage put(String key, String value) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		// Create Request
+		TextMessage req = new TextMessage("put", key, value);
+		byte[] req_byte = req.getMsgBytes();
+		output.write(req_byte, 0, req_byte.length);
+		output.flush();
+		// Wait to read response from server. TODO: add a timeout
+		TextMessage res = receiveMessage();
+		return res; //Need to use KVMessage not TextMessage
 	}
 
 	@Override
 	public KVMessage get(String key) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		// Create Request
+		TextMessage req = new TextMessage("get", key, "");
+		byte[] req_byte = req.getMsgBytes();
+		output.write(req_byte, 0, req_byte.length);
+		output.flush();
+		// Wait to read response from server. TODO: add a timeout
+		TextMessage res = receiveMessage();
+		return res;
 	}
+
+	private TextMessage receiveMessage() throws IOException {
+		int index = 0;
+		byte[] msgBytes = null, tmp = null;
+		byte[] bufferBytes = new byte[BUFFER_SIZE];
+		
+		/* read first char from stream */
+		byte read = (byte) input.read();	
+		boolean reading = true;
+		
+		while(read != 13 && reading) {/* carriage return */
+			/* if buffer filled, copy to msg array */
+			if(index == BUFFER_SIZE) {
+				if(msgBytes == null){
+					tmp = new byte[BUFFER_SIZE];
+					System.arraycopy(bufferBytes, 0, tmp, 0, BUFFER_SIZE);
+				} else {
+					tmp = new byte[msgBytes.length + BUFFER_SIZE];
+					System.arraycopy(msgBytes, 0, tmp, 0, msgBytes.length);
+					System.arraycopy(bufferBytes, 0, tmp, msgBytes.length,
+							BUFFER_SIZE);
+				}
+
+				msgBytes = tmp;
+				bufferBytes = new byte[BUFFER_SIZE];
+				index = 0;
+			} 
+			
+			/* only read valid characters, i.e. letters and numbers */
+			if((read > 31 && read < 127)) {
+				bufferBytes[index] = read;
+				index++;
+			}
+			
+			/* stop reading is DROP_SIZE is reached */
+			if(msgBytes != null && msgBytes.length + index >= DROP_SIZE) {
+				reading = false;
+			}
+			
+			/* read next char from stream */
+			read = (byte) input.read();
+		}
+		
+		if(msgBytes == null){
+			tmp = new byte[index];
+			System.arraycopy(bufferBytes, 0, tmp, 0, index);
+		} else {
+			tmp = new byte[msgBytes.length + index];
+			System.arraycopy(msgBytes, 0, tmp, 0, msgBytes.length);
+			System.arraycopy(bufferBytes, 0, tmp, msgBytes.length, index);
+		}
+		
+		msgBytes = tmp;
+		
+		/* build final String */
+		TextMessage msg = new TextMessage(msgBytes);
+		logger.info("Receive message:\t '" + msg.getMsg() + "'");
+		return msg;
+    }
 }
