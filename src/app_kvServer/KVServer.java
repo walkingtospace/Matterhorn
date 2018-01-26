@@ -301,11 +301,16 @@ public class KVServer implements IKVServer {
 
 	@Override
     public void kill(){
-		// TODO Auto-generated method stub
+		stopServer();
 	}
 
 	@Override
     public void close(){
+		// Cache is write-through, so saving is not necessary.
+		stopServer();
+	}
+	
+	private void stopServer() {
 		running = false;
         try {
 			serverSocket.close();
