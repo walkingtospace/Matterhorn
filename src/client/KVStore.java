@@ -1,5 +1,10 @@
 package client;
 
+import java.net.Socket;
+import java.util.HashSet;
+
+import org.apache.log4j.Logger;
+
 import common.messages.KVMessage;
 
 public class KVStore implements KVCommInterface {
@@ -8,13 +13,26 @@ public class KVStore implements KVCommInterface {
 	 * @param address the address of the KVServer
 	 * @param port the port of the KVServer
 	 */
-	public KVStore(String address, int port) {
-		// TODO Auto-generated method stub
-	}
+	
+	private Socket socket;
+	private String address;
+	private int port;
+    private Logger logger = Logger.getRootLogger();
+
+	
+	public KVStore(String input_address, int input_port) {
+		address = input_address;
+		port = input_port;
+    }
 
 	@Override
 	public void connect() throws Exception {
-		// TODO Auto-generated method stub
+		try {
+	    	socket = new Socket(address, port);
+	        logger.info("Connection established");
+		} catch(Exception e) {
+			logger.error("Connection could not be established!");
+		}
 	}
 
 	@Override
