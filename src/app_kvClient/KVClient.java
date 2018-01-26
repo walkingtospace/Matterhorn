@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 // Internal import
 import logger.LogSetup;
 
+import client.KVClientSocketListener;
 import client.KVCommInterface;
 import client.KVStore;
 

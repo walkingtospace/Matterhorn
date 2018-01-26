@@ -21,7 +21,7 @@ import logger.LogSetup;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import app_kvClient.KVClient;
+import app_kvServer.IKVServer;
 
 public class KVServer implements IKVServer {
 
@@ -41,7 +41,7 @@ public class KVServer implements IKVServer {
 	
 	private int port;
 	private int cacheSize;
-	private CacheStrategy strategy;
+	private CacheStrategy strategy = null;
 	
 	private String dbPath = "db.txt";
 	
@@ -72,7 +72,7 @@ public class KVServer implements IKVServer {
 		return strategy;
 	}
 
-	@Override
+	@Override	
     public int getCacheSize(){
 		return cacheSize;
 	}
