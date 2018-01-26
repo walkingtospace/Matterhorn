@@ -3,3 +3,5 @@ echoServer
 logs
 bin
 .metadata
+*.MF
+*.jar

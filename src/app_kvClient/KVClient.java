@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 // Internal import
 import logger.LogSetup;
 
-import client.KVClientSocketListener;
 import client.KVCommInterface;
 import client.KVStore;
 
@@ -46,6 +45,8 @@ public class KVClient implements IKVClient {
     public void newConnection(String hostname, int port) throws Exception {
     	kvstore = new KVStore(hostname, port);
     	kvstore.connect();
+    	System.out.println("Connected to server successfully");
+    	logger.info("Connection established");
     }
 
     @Override
@@ -182,7 +183,7 @@ public class KVClient implements IKVClient {
  
     public static void main(String[] args) {
         try {
-            new LogSetup("logs/client.log", Level.OFF);
+            new LogSetup("logs/client.log", Level.DEBUG);
             KVClient ui = new KVClient();
             ui.run();
         } catch (IOException e) {

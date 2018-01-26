@@ -2,18 +2,10 @@ package common.messages;
 
 import java.io.Serializable;
 
-import java.io.StringWriter;
-
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
-import common.messages.KVMessage.StatusType;
-
-import logger.LogSetup;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 /**
  * Represents a simple text message, which is intended to be received and sent 
@@ -60,6 +52,8 @@ public class TextMessage implements Serializable, KVMessage{
 	public TextMessage(byte[] bytes) {
 		this.msg = new String(toByteArray(bytes.toString()));
 		JSONParser parser = new JSONParser();
+		logger.debug("WTFFFFFFFFFFFFFF");
+		logger.debug(this.msg);
 		try {
 			jsonMessage = (JSONObject) parser.parse(this.msg);
 		} catch (ParseException e) {

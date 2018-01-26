@@ -26,7 +26,6 @@ import cache.KVFIFOCache;
 import cache.KVLFUCache;
 import cache.KVLRUCache;
 
-import app_kvClient.KVClient;
 import app_kvServer.IKVServer;
 
 public class KVServer implements IKVServer {
@@ -59,24 +58,20 @@ public class KVServer implements IKVServer {
 		this.cache = createCache(this.strategy);
 		this.run();
 	}
-
-	private KVCache createCache(CacheStrategy strategy){
-		KVCache cache = null;
-		switch (strategy) {
-			case LRU:
-				cache = new KVLRUCache(this.cacheSize);
-				break;
-			case FIFO:
-				cache = new KVFIFOCache(this.cacheSize);
-				break;
-			case LFU:
-				cache = new KVLFUCache(this.cacheSize);
-			default:
-				break;
-		}
-		return cache;
-	}
 	
+	public static void main(String[] args) {
+		try {
+			new LogSetup("logs/server.log", Level.ALL);
+			int port = Integer.parseInt(args[0]);
+			int cacheSize = Integer.parseInt(args[1]);
+			String cacheStrategy = args[2];
+			KVServer server = new KVServer(port, cacheSize, cacheStrategy);
+			server.run();
+		} catch(Exception e) {
+			System.out.println("Error! Can't start server");
+		}
+	}
+
 	@Override
 	public int getPort(){
 		return port;
@@ -314,7 +309,24 @@ public class KVServer implements IKVServer {
 					"Unable to close socket on port: " + port, e);
 		}
 	}
-	
+
+	private KVCache createCache(CacheStrategy strategy){
+		KVCache cache = null;
+		switch (strategy) {
+			case LRU:
+				cache = new KVLRUCache(this.cacheSize);
+				break;
+			case FIFO:
+				cache = new KVFIFOCache(this.cacheSize);
+				break;
+			case LFU:
+				cache = new KVLFUCache(this.cacheSize);
+			default:
+				break;
+		}
+		return cache;
+	}
+
 	private boolean initializeServer() {
     	logger.info("Initialize server ...");
     	try {

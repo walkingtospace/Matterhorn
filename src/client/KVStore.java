@@ -65,6 +65,7 @@ public class KVStore implements KVCommInterface {
 		// Create Request
 		TextMessage req = new TextMessage("put", key, value);
 		byte[] req_byte = req.getMsgBytes();
+		logger.debug(req.getMsg());
 		output.write(req_byte, 0, req_byte.length);
 		output.flush();
 		// Wait to read response from server. TODO: add a timeout
