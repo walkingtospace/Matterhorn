@@ -7,7 +7,7 @@ import java.net.Socket;
 
 import org.apache.log4j.*;
 
-import common.messages.TextMessage;;
+import common.messages.TextMessage;
 
 
 /**
