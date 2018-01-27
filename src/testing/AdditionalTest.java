@@ -3,6 +3,7 @@ package testing;
 import org.junit.Test;
 
 import app_kvServer.KVServer;
+import app_kvClient.KVClient;
 
 import client.KVStore;
 
@@ -14,7 +15,20 @@ import junit.framework.TestCase;
 public class AdditionalTest extends TestCase {
 	
 	private KVServer kvServer;
-	
+	private KVStore kvClient;
+
+	public void setUp() {
+		kvClient = new KVStore("localhost", 50000);
+		try {
+			kvClient.connect();
+		} catch (Exception e) {
+		}
+	}
+
+	public void tearDown() {
+		kvClient.disconnect();
+	}
+
 	@Test
 	public void testClearStorage() {
 		kvServer = new KVServer(1234, 1234, "LRU");
@@ -65,5 +79,49 @@ public class AdditionalTest extends TestCase {
 		}
 
 		assertTrue(ex == null && response == false);
+	}
+	
+	@Test
+	public void testShellUI() {
+		// Test connect command
+		KVClient ui = new KVClient();
+		kvServer = new KVServer(50000, 1024, "FIFO");
+		ui.handleCommand("connect localhost 50000");
+		ui.handleCommand("put testUI testUI"); // Insert
+		ui.handleCommand("put testUI"); // Delete
+		boolean response = kvServer.inStorage("testUI");
+		assertTrue(response == false);
+	}
+	
+	@Test
+	public void testPutWithSpace() {
+		String key = "space";
+		String value = "my string";
+		KVMessage response = null;
+		Exception ex = null;
+
+		try {
+			response = kvClient.put(key, "");
+		} catch (Exception e) {
+			ex = e;
+		}
+
+		assertTrue(ex == null && response.getStatus() == StatusType.DELETE_SUCCESS);
+
+		try {
+			response = kvClient.put(key, value);
+		} catch (Exception e) {
+			ex = e;
+		}
+
+		assertTrue(ex == null && response.getStatus() == StatusType.PUT_SUCCESS);
+		
+		try {
+			response = kvClient.put(key, "");
+		} catch (Exception e) {
+			ex = e;
+		}
+
+		assertTrue(ex == null && response.getStatus() == StatusType.DELETE_SUCCESS);
 	}
 }
