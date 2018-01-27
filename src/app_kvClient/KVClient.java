@@ -4,6 +4,7 @@ package app_kvClient;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.UnknownHostException;
 
 // 3rd party library import
 import org.apache.log4j.Level;
@@ -42,7 +43,8 @@ public class KVClient implements IKVClient {
     }
  
     @Override
-    public void newConnection(String hostname, int port) throws Exception {
+    public void newConnection(String hostname, int port)
+    		throws UnknownHostException, IOException {
     	kvstore = new KVStore(hostname, port);
     	kvstore.connect();
     	System.out.println("Connected to server successfully");
@@ -65,8 +67,10 @@ public class KVClient implements IKVClient {
             if(tokens.length == 3) {
                 try {
                     newConnection(tokens[1], Integer.parseInt(tokens[2]));
-                } catch (Exception e) {
-                    printError("Could not establish connection!");
+                } catch (UnknownHostException e) {
+                    printError("Unknown Host!");
+                } catch (IOException e) {
+                	printError("Failed to connect to server");
                 }
             } else {
                 printError("Invalid number of parameters!");

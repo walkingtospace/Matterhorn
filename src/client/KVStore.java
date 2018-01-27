@@ -1,6 +1,7 @@
 package client;
 
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,15 +34,11 @@ public class KVStore implements KVCommInterface {
     }
 
 	@Override
-	public void connect() throws Exception {
-		try {
-	    	socket = new Socket(address, port);
-			output = socket.getOutputStream();
-			input = socket.getInputStream();
-	        logger.info("Connection established");
-		} catch(Exception e) {
-			logger.error("Connection could not be established!");
-		}
+	public void connect() throws UnknownHostException, IOException {
+    	socket = new Socket(address, port);
+		output = socket.getOutputStream();
+		input = socket.getInputStream();
+        logger.info("Connection established");
 	}
 
 	@Override
@@ -64,7 +61,7 @@ public class KVStore implements KVCommInterface {
 	public KVMessage put(String key, String value) throws Exception {
 		// Create Request
 		TextMessage req = null; 
-		if (value != "") {
+		if (value != "" && value != "null") {
 			req = new TextMessage("PUT", key, value);
 		} else {
 			req = new TextMessage("DELETE", key, value);
