@@ -19,16 +19,16 @@ public class AdditionalTest extends TestCase {
 	public void testClearStorage() {
 		kvServer = new KVServer(1234, 1234, "LRU");
 		Exception ex = null;
-		String response = null;
+		boolean response = true;
 		try {
 			kvServer.putKV("test", "test");
 			kvServer.clearStorage();
-			response = kvServer.getKV("test");
+			response = kvServer.inStorage("test");
 		} catch (Exception e) {
 			ex = e;
 		}
 
-		assertTrue(ex == null && response == null);
+		assertTrue(ex == null && response == false);
 	}
 	
 	@Test
