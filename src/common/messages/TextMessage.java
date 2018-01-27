@@ -133,7 +133,7 @@ public class TextMessage implements Serializable, KVMessage{
 	public StatusType getStatus() {
 		if (jsonMessage == null)
 			return null;
-		return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : (StatusType) jsonMessage.get("status")));
+		return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : jsonMessage.get("status")));
 	}
 	
 }

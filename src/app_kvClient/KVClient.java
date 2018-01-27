@@ -75,10 +75,10 @@ public class KVClient implements IKVClient {
         	try{
 	            if(tokens.length == 3) {
 	            	KVMessage res = kvstore.put(tokens[1], tokens[2]);
-	            	printInfo("" + res.getStatus());
+	            	System.out.println(PROMPT + res.getStatus());
 	            } else if (tokens.length == 2){
 	            	KVMessage res = kvstore.put(tokens[1], "");
-	            	printInfo("" + res.getStatus());
+	            	System.out.println(PROMPT + res.getStatus());
 	            }else {
 	                printError("Wrong number of parameters passed. Please Check Help Manual");
 	            }
@@ -89,7 +89,7 @@ public class KVClient implements IKVClient {
         	if(tokens.length == 2) {
         		try{
         			KVMessage res = kvstore.get(tokens[1]);
-        			printInfo(res.getValue());
+        			System.out.println(PROMPT + res.getValue());
         		} catch (Exception e) {
         			printError("Failed to get key pair");
         		}
@@ -192,7 +192,7 @@ public class KVClient implements IKVClient {
  
     public static void main(String[] args) {
         try {
-            new LogSetup("logs/client.log", Level.DEBUG);
+            new LogSetup("logs/client.log", Level.OFF);
             KVClient ui = new KVClient();
             ui.run();
         } catch (IOException e) {

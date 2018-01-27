@@ -73,6 +73,9 @@ public class KVServer implements IKVServer {
 	
 	public static void main(String[] args) {
 		try {
+			if (args.length != 4) {
+				System.out.println("Wrong number of arguments passed to server");
+			}
 			new LogSetup("logs/server.log", Level.ALL);
 			int port = Integer.parseInt(args[0]);
 			int cacheSize = Integer.parseInt(args[1]);
