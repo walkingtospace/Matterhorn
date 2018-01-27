@@ -2,6 +2,7 @@ package app_kvServer;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -49,13 +50,24 @@ public class KVServer implements IKVServer {
 	private CacheStrategy strategy;
 	private KVCache cache;
 	
-	private String dbPath = "db.txt";
+	private String dbPath = "./db.txt";
 	
 	public KVServer(int port, int cacheSize, String strategy) {
 		this.port = port;
 		this.cacheSize = cacheSize;
 		this.strategy = CacheStrategy.valueOf(strategy);
 		this.cache = createCache(this.strategy);
+		File dbFile = new File(dbPath);
+		if (!dbFile.exists()) {
+			try {
+				dbFile.createNewFile();
+			} catch (IOException e1) {
+				logger.error("Error! " +
+		                "Unable to create database file '" + 
+		                dbPath + "'");  
+			}
+		}
+		
 		this.run();
 	}
 	
@@ -244,7 +256,7 @@ public class KVServer implements IKVServer {
         catch(FileNotFoundException ex) {
         	logger.error("Error! " +
                 "Unable to open database file '" + 
-                dbPath + "'");                
+                dbPath + "'" + ex);                
         }
         catch(IOException ex) {
         	logger.error(
@@ -279,7 +291,7 @@ public class KVServer implements IKVServer {
 	        while(running){
 	            try {
 	                Socket client = serverSocket.accept();                
-	                ClientConnection connection = new ClientConnection(client);
+	                ClientConnection connection = new ClientConnection(client, this);
 	                new Thread(connection).start();
 	                
 	                logger.info("Connected to " 

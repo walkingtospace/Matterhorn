@@ -16,6 +16,7 @@ public class TextMessage implements Serializable, KVMessage{
 	private static final long serialVersionUID = 5549512212003782618L;
 	JSONObject jsonMessage = null;
 	private String msg = null;
+	private byte[] msgBytes;
 	private static final char LINE_FEED = 0x0A;
 	private static final char RETURN = 0x0D;
 	private boolean isClient;
@@ -50,7 +51,9 @@ public class TextMessage implements Serializable, KVMessage{
      * @param bytes the bytes that form the message in ASCII coding.
      */
 	public TextMessage(byte[] bytes) {
-		this.msg = new String(toByteArray(bytes.toString()));
+		this.msgBytes = addCtrChars(bytes);
+		this.msg = new String(msgBytes);
+//		this.msg = new String(toByteArray(bytes.toString()));
 		JSONParser parser = new JSONParser();
 		logger.debug("WTFFFFFFFFFFFFFF");
 		logger.debug(this.msg);
@@ -132,7 +135,7 @@ public class TextMessage implements Serializable, KVMessage{
 	public StatusType getStatus() {
 		if (jsonMessage == null)
 			return null;
-		return isClient ? (StatusType) jsonMessage.get("operation") : (StatusType) jsonMessage.get("status");
+		return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : (StatusType) jsonMessage.get("status")));
 	}
 	
 }

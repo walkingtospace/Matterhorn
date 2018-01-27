@@ -63,7 +63,7 @@ public class KVStore implements KVCommInterface {
 	@Override
 	public KVMessage put(String key, String value) throws Exception {
 		// Create Request
-		TextMessage req = new TextMessage("put", key, value);
+		TextMessage req = new TextMessage("PUT", key, value);
 		byte[] req_byte = req.getMsgBytes();
 		logger.debug(req.getMsg());
 		output.write(req_byte, 0, req_byte.length);
@@ -76,7 +76,7 @@ public class KVStore implements KVCommInterface {
 	@Override
 	public KVMessage get(String key) throws Exception {
 		// Create Request
-		TextMessage req = new TextMessage("get", key, "");
+		TextMessage req = new TextMessage("GET", key, "");
 		byte[] req_byte = req.getMsgBytes();
 		output.write(req_byte, 0, req_byte.length);
 		output.flush();

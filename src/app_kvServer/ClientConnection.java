@@ -7,6 +7,7 @@ import java.net.Socket;
 
 import org.apache.log4j.*;
 
+import common.messages.KVMessage.StatusType;
 import common.messages.TextMessage;
 
 
@@ -29,12 +30,15 @@ public class ClientConnection implements Runnable {
 	private InputStream input;
 	private OutputStream output;
 	
+	private KVServer kvServer;
+	
 	/**
 	 * Constructs a new CientConnection object for a given TCP socket.
 	 * @param clientSocket the Socket object for the client connection.
 	 */
-	public ClientConnection(Socket clientSocket) {
+	public ClientConnection(Socket clientSocket, KVServer kvServer) {
 		this.clientSocket = clientSocket;
+		this.kvServer = kvServer;
 		this.isOpen = true;
 	}
 	
@@ -55,7 +59,40 @@ public class ClientConnection implements Runnable {
 			while(isOpen) {
 				try {
 					TextMessage latestMsg = receiveMessage();
-					sendMessage(latestMsg);
+					StatusType operation = latestMsg.getStatus();
+					
+					String key = null;
+					String value = null;
+					StatusType status = StatusType.PUT_SUCCESS;
+					switch (operation) {
+						case PUT:
+							key = latestMsg.getKey();
+							value = latestMsg.getValue();
+							try {
+								if (kvServer.inStorage(key))
+									status = StatusType.PUT_UPDATE;
+								kvServer.putKV(key, value);
+							} catch (Exception e) {
+								logger.error("Error! Unable to put key-value pair!", e);
+								status = StatusType.PUT_ERROR;
+							}
+							break;
+						case GET:
+							key = latestMsg.getKey();
+							try {
+								value = kvServer.getKV(latestMsg.getKey());
+								status = StatusType.GET_SUCCESS;
+							} catch (Exception e) {
+								logger.error("Error! Unable to put key-value pair!", e);
+								status = StatusType.GET_ERROR;
+							}
+							break;
+						default:
+							break;
+					}
+					TextMessage resultMsg = new TextMessage(status, key, value);
+					
+					sendMessage(resultMsg);
 					
 				/* connection either terminated by the client or lost due to 
 				 * network problems*/	
