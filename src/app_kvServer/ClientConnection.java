@@ -100,7 +100,6 @@ public class ClientConnection implements Runnable {
 								logger.error("Error! Unable to delete key-value pair!", e);
 								status = StatusType.DELETE_ERROR;
 							}
-							
 							break;
 						default:
 							break;
