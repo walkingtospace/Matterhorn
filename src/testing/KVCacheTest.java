@@ -3,14 +3,16 @@ package testing;
 import cache.KVFIFOCache;
 import cache.KVLFUCache;
 import cache.KVLRUCache;
+import junit.framework.TestCase;
+
 import org.junit.Test;
 import org.junit.Assert;
 
 
-public class KVCacheTest {
+public class KVCacheTest extends TestCase {
 	
 	@Test
-	public void TestFIFOGetSet() {
+	public void testFIFOGetSet() {
 		KVFIFOCache fifoCache = new KVFIFOCache(2);
 		fifoCache.set("key1", "val1");
 		fifoCache.set("key2", "val2");
@@ -21,7 +23,7 @@ public class KVCacheTest {
 	}
 	
 	@Test
-	public void TestFIFODelete() {
+	public void testFIFODelete() {
 		KVFIFOCache fifoCache = new KVFIFOCache(3);
 		fifoCache.set("key1", "val1");
 		fifoCache.set("key2", "val2");
@@ -33,7 +35,7 @@ public class KVCacheTest {
 	}
 	
 	@Test
-	public void TestLRUGetSet() {
+	public void testLRUGetSet() {
 		KVLRUCache lruCache = new KVLRUCache(2);
 		lruCache.set("key1", "val1");
 		lruCache.set("key2", "val2");
@@ -44,7 +46,7 @@ public class KVCacheTest {
 	}
 	
 	@Test
-	public void TestLRUDelete() {
+	public void testLRUDelete() {
 		KVLRUCache lruCache = new KVLRUCache(2);
 		lruCache.set("key1", "val1");
 		lruCache.set("key2", "val2");
@@ -57,7 +59,7 @@ public class KVCacheTest {
 	}
 	
 	@Test
-	public void TestLFUGetSet() {
+	public void testLFUGetSet() {
 		KVLFUCache lfuCache = new KVLFUCache(2);
 		lfuCache.set("key1", "val1");
 		lfuCache.get("key1");
@@ -70,7 +72,7 @@ public class KVCacheTest {
 	}
 	
 	@Test
-	public void TestLFUDelete() {
+	public void testLFUDelete() {
 		KVLFUCache lfuCache = new KVLFUCache(2);
 		lfuCache.set("key1", "val1");
 		lfuCache.get("key1");
