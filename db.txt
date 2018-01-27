@@ -1,6 +1,7 @@
 h 123
 haha 1
 q 1
-gg 5
+gg 15
 g 4
 ok 1
+14 14

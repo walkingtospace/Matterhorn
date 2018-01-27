@@ -81,9 +81,12 @@ public class ClientConnection implements Runnable {
 							key = latestMsg.getKey();
 							try {
 								value = kvServer.getKV(latestMsg.getKey());
-								status = StatusType.GET_SUCCESS;
+								if (value == null)
+									status = StatusType.GET_ERROR;
+								else
+									status = StatusType.GET_SUCCESS;
 							} catch (Exception e) {
-								logger.error("Error! Unable to put key-value pair!", e);
+								logger.error("Error! Unable to get key-value pair!", e);
 								status = StatusType.GET_ERROR;
 							}
 							break;
