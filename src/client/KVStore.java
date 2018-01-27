@@ -61,7 +61,7 @@ public class KVStore implements KVCommInterface {
 	public KVMessage put(String key, String value) throws Exception {
 		// Create Request
 		TextMessage req = null; 
-		if (value != "") {
+		if (value != "" && value != "null") {
 			req = new TextMessage("PUT", key, value);
 		} else {
 			req = new TextMessage("DELETE", key, value);

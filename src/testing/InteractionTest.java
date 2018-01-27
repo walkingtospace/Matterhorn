@@ -33,12 +33,28 @@ public class InteractionTest extends TestCase {
 		Exception ex = null;
 
 		try {
+			response = kvClient.put(key, "");
+		} catch (Exception e) {
+			ex = e;
+		}
+
+		assertTrue(ex == null && response.getStatus() == StatusType.DELETE_SUCCESS);
+
+		try {
 			response = kvClient.put(key, value);
 		} catch (Exception e) {
 			ex = e;
 		}
 
 		assertTrue(ex == null && response.getStatus() == StatusType.PUT_SUCCESS);
+		
+		try {
+			response = kvClient.put(key, "");
+		} catch (Exception e) {
+			ex = e;
+		}
+
+		assertTrue(ex == null && response.getStatus() == StatusType.DELETE_SUCCESS);
 	}
 	
 	@Test
