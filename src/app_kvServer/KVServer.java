@@ -58,12 +58,12 @@ public class KVServer implements IKVServer {
 		this.strategy = CacheStrategy.valueOf(strategy);
 		this.cache = createCache(this.strategy);
 		File dbDir = new File(dbPath);
-		 try{
-			 	dbDir.mkdir();
-		    } 
-		    catch(SecurityException se){
-		    	logger.error("Error! Can't create database folder");
-		    }        
+		try{
+		 	dbDir.mkdir();
+	    } 
+	    catch(SecurityException se){
+	    	logger.error("Error! Can't create database folder");
+	    }        
 	}
 	
 	public static void main(String[] args) {
@@ -200,7 +200,7 @@ public class KVServer implements IKVServer {
 	}
 
 	@Override
-    public boolean inCache(String key){
+    public synchronized boolean inCache(String key){
 		if (cache != null && cache.get(key) != null) {
 			return true;
 		}
@@ -209,13 +209,13 @@ public class KVServer implements IKVServer {
 
 	@Override
     public synchronized String getKV(String key) throws Exception{
+		String value = null;
 		if (cache != null) {
-			String value = cache.get(key);
+			value = cache.get(key);
 			if (value != null) {
 				return value;
 			}
 		}
-		String value = null;
 		key += ".kv";
 		try {
             File kvFile = new File(dbPath + key);
@@ -225,7 +225,7 @@ public class KVServer implements IKVServer {
                 value = bufferedReader.readLine();
             	bufferedReader.close();
             }
-                     
+            return value;
         }
         catch(FileNotFoundException ex) {
         	logger.error("Error! " +
@@ -237,9 +237,7 @@ public class KVServer implements IKVServer {
                 "Error! reading file '" 
                 + key + "'" + ex);                  
         }
-		finally {
-			return value;
-		}
+		return value;
 //		String line = null;
 //		String value = null;
 //		try {
@@ -371,7 +369,7 @@ public class KVServer implements IKVServer {
 	}
 
 	@Override
-    public void clearCache(){
+    public synchronized void clearCache(){
 		cache = createCache(strategy);
 	}
 

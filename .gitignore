@@ -2,6 +2,7 @@ echoClient
 echoServer
 logs
 bin
+db
 .metadata
 *.MF
 *.jar
