@@ -49,4 +49,16 @@ public class KVLFUCache implements KVCache {
         minCount = 1;
         countListMap.get(1).add(key);
     }
+    
+    public synchronized void delete(String key) {
+    	if(!mainMap.containsKey(key))
+            return;
+    	int count = countMap.get(key);
+    	countListMap.get(count).remove(key);
+    	countMap.remove(key);
+    	mainMap.remove(key);
+    	
+    	
+    }
+    
 }

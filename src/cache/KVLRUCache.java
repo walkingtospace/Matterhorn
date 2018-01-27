@@ -27,4 +27,9 @@ public class KVLRUCache implements KVCache {
     public synchronized void set(String key, String value) {
         map.put(key, value);
     }
+    
+    public synchronized void delete(String key) {
+        map.remove(key);
+    }
+    
 }
