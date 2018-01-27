@@ -67,8 +67,6 @@ public class KVServer implements IKVServer {
 		                dbPath + "'");  
 			}
 		}
-		
-		this.run();
 	}
 	
 	public static void main(String[] args) {
@@ -80,7 +78,7 @@ public class KVServer implements IKVServer {
 			KVServer server = new KVServer(port, cacheSize, cacheStrategy);
 			server.run();
 		} catch(Exception e) {
-			System.out.println("Error! Can't start server");
+			logger.error("Error! Can't start server");
 		}
 	}
 
@@ -107,6 +105,48 @@ public class KVServer implements IKVServer {
 	@Override	
     public int getCacheSize(){
 		return cacheSize;
+	}
+		
+    public synchronized void deleteKV(String key) throws Exception{
+    	if (inCache(key))
+    		cache.delete(key);
+    	String newContent = "";
+		String line = null;
+		try {
+            // FileReader reads text files in the default encoding.
+            FileReader fileReader = 
+                new FileReader(dbPath);
+
+            // Always wrap FileReader in BufferedReader.
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            while((line = bufferedReader.readLine()) != null) {
+            	String[] pair = line.split(" ");
+            	if (!pair[0].equals(key)) {
+                	newContent += line + System.lineSeparator();
+                }
+            }
+            bufferedReader.close();
+            FileWriter fileWriter;
+            BufferedWriter bufferedWriter;
+            
+        	fileWriter = new FileWriter(dbPath);
+                
+            bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(newContent);
+            bufferedWriter.close();
+            
+        }
+        catch(FileNotFoundException ex) {
+        	logger.error("Error! " +
+                "Unable to open database file '" + 
+                dbPath + "'" + ex);                
+        }
+        catch(IOException ex) {
+        	logger.error(
+                "Error! reading file '" 
+                + dbPath + "'");                  
+        }
 	}
 
 	@Override

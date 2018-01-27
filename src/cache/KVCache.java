@@ -11,4 +11,6 @@ public interface KVCache {
      * Set the given cache key to the given value
      */
 	public void set(String key, String value);
+	
+	public void delete(String key);
 }
