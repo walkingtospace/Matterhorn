@@ -63,9 +63,13 @@ public class KVStore implements KVCommInterface {
 	@Override
 	public KVMessage put(String key, String value) throws Exception {
 		// Create Request
-		TextMessage req = new TextMessage("PUT", key, value);
+		TextMessage req = null; 
+		if (value != "") {
+			req = new TextMessage("PUT", key, value);
+		} else {
+			req = new TextMessage("DELETE", key, value);
+		}
 		byte[] req_byte = req.getMsgBytes();
-		logger.debug(req.getMsg());
 		output.write(req_byte, 0, req_byte.length);
 		output.flush();
 		// Wait to read response from server. TODO: add a timeout

@@ -60,7 +60,7 @@ public class KVClient implements IKVClient {
         if(tokens[0].equals("quit")) {
             stop = true;
             disconnect();
-            System.out.println(PROMPT + "Application exit!");        
+            printInfo("Application exit!");        
         } else if (tokens[0].equals("connect")){
             if(tokens.length == 3) {
                 try {
@@ -72,19 +72,24 @@ public class KVClient implements IKVClient {
                 printError("Invalid number of parameters!");
             }
         } else if (tokens[0].equals("put")) {
-            if(tokens.length == 3) {
-            	try {
-            		KVMessage res = kvstore.put(tokens[1], tokens[2]);	
-            	} catch (Exception e) {
-            		printError("Failed to put kv pair");
-            	}
-            } else {
-                printError("Wrong number of parameters passed. Please Check Help Manual");
-            }
+        	try{
+	            if(tokens.length == 3) {
+	            	KVMessage res = kvstore.put(tokens[1], tokens[2]);
+	            	printInfo("" + res.getStatus());
+	            } else if (tokens.length == 2){
+	            	KVMessage res = kvstore.put(tokens[1], "");
+	            	printInfo("" + res.getStatus());
+	            }else {
+	                printError("Wrong number of parameters passed. Please Check Help Manual");
+	            }
+        	} catch(Exception e) {
+        		printError("Failed to put kv pair");
+        	}
         } else if (tokens[0].equals("get")) {
         	if(tokens.length == 2) {
         		try{
-        			KVMessage res = kvstore.get(tokens[1]);	
+        			KVMessage res = kvstore.get(tokens[1]);
+        			printInfo(res.getValue());
         		} catch (Exception e) {
         			printError("Failed to get key pair");
         		}
@@ -152,6 +157,10 @@ public class KVClient implements IKVClient {
 
     private void printError(String error){
         System.out.println(PROMPT + "Error! " +  error);
+    }
+    
+    private void printInfo(String info){
+    	System.out.println(PROMPT + " " + info);
     }
 
     private String setLevel(String levelString) {

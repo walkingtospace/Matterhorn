@@ -55,8 +55,6 @@ public class TextMessage implements Serializable, KVMessage{
 		this.msg = new String(msgBytes);
 //		this.msg = new String(toByteArray(bytes.toString()));
 		JSONParser parser = new JSONParser();
-		logger.debug("WTFFFFFFFFFFFFFF");
-		logger.debug(this.msg);
 		try {
 			jsonMessage = (JSONObject) parser.parse(this.msg);
 		} catch (ParseException e) {
