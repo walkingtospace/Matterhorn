@@ -59,7 +59,7 @@ public class TextMessage implements Serializable, KVMessage{
 			jsonMessage = (JSONObject) parser.parse(this.msg);
 		} catch (ParseException e) {
 			logger.error("Error! " +
-        			"Unable to parser incoming bytes to json. \n", e);
+        			"Unable to parse incoming bytes to json. \n", e);
 		}
 		isClient = jsonMessage.containsKey("operation") ? true : false;
 	}
