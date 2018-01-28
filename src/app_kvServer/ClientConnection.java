@@ -59,6 +59,9 @@ public class ClientConnection implements Runnable {
 			while(isOpen) {
 				try {
 					TextMessage latestMsg = receiveMessage();
+					if (latestMsg.getMsg().trim().length() == 0) {
+						throw new IOException();
+					}
 					StatusType operation = latestMsg.getStatus();
 					
 					String key = null;
@@ -68,17 +71,27 @@ public class ClientConnection implements Runnable {
 						case PUT:
 							key = latestMsg.getKey();
 							value = latestMsg.getValue();
+							if (key.isEmpty() || key.contains(" ") || key.length() > 20 || value.length() > 120000) {
+								logger.error("Error! Unable to PUT due to invalid key or value!");
+								status = StatusType.PUT_ERROR;
+								break;
+							}
 							try {
 								if (kvServer.inStorage(key))
 									status = StatusType.PUT_UPDATE;
 								kvServer.putKV(key, value);
 							} catch (Exception e) {
-								logger.error("Error! Unable to put key-value pair!", e);
+								logger.error("Error! Unable to PUT key-value pair!", e);
 								status = StatusType.PUT_ERROR;
 							}
 							break;
 						case GET:
 							key = latestMsg.getKey();
+							if (key.isEmpty() || key.contains(" ") || key.length() > 20) {
+								logger.error("Error! Unable to GET due to invalid key");
+								status = StatusType.GET_ERROR;
+								break;
+							}
 							try {
 								value = kvServer.getKV(latestMsg.getKey());
 								if (value == null)
@@ -86,7 +99,7 @@ public class ClientConnection implements Runnable {
 								else
 									status = StatusType.GET_SUCCESS;
 							} catch (Exception e) {
-								logger.error("Error! Unable to get key-value pair!", e);
+								logger.error("Error! Unable to GET key-value pair!", e);
 								status = StatusType.GET_ERROR;
 							}
 							break;
@@ -97,7 +110,7 @@ public class ClientConnection implements Runnable {
 								kvServer.deleteKV(key);
 								status = StatusType.DELETE_SUCCESS;
 							} catch (Exception e) {
-								logger.error("Error! Unable to delete key-value pair!", e);
+								logger.error("Error! Unable to DELETE key-value pair!", e);
 								status = StatusType.DELETE_ERROR;
 							}
 							break;
@@ -207,8 +220,6 @@ public class ClientConnection implements Runnable {
 		}
 		
 		msgBytes = tmp;
-		
-		/* build final String */
 		TextMessage msg = new TextMessage(msgBytes);
 		logger.info("RECEIVE \t<" 
 				+ clientSocket.getInetAddress().getHostAddress() + ":" 

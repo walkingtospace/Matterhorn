@@ -399,6 +399,7 @@ public class KVServer implements IKVServer {
         if(serverSocket != null) {
 	        while(running){
 	            try {
+	            	port = serverSocket.getLocalPort();
 	                Socket client = serverSocket.accept();                
 	                ClientConnection connection = new ClientConnection(client, this);
 	                new Thread(connection).start();

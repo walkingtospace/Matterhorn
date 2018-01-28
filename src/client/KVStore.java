@@ -60,8 +60,8 @@ public class KVStore implements KVCommInterface {
 	@Override
 	public KVMessage put(String key, String value) throws Exception {
 		// Create Request
-		TextMessage req = null; 
-		if (value != "" && value != "null") {
+		TextMessage req = null;
+		if (value != "" && value != null) {
 			req = new TextMessage("PUT", key, value);
 		} else {
 			req = new TextMessage("DELETE", key, value);
