@@ -302,6 +302,7 @@ public class KVServer implements IKVServer {
         }
     }
 
+
     private KVCache createCache(CacheStrategy strategy){
         KVCache cache = null;
         switch (strategy) {
@@ -318,6 +319,7 @@ public class KVServer implements IKVServer {
         }
         return cache;
     }
+
 
     private boolean initializeServer() {
         logger.info("Initialize server ...");

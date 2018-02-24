@@ -41,7 +41,8 @@ public class KVClient implements IKVClient {
             }
         }
     }
- 
+
+
     @Override
     public void newConnection(String hostname, int port)
             throws UnknownHostException, IOException {
@@ -51,11 +52,13 @@ public class KVClient implements IKVClient {
         logger.info("Connection established");
     }
 
+
     @Override
     public KVCommInterface getStore() {
         return kvstore;
     }
- 
+
+
     public void handleCommand(String cmdLine) {
         String[] tokens = cmdLine.split("\\s+");
 
@@ -123,12 +126,14 @@ public class KVClient implements IKVClient {
         }
     }
 
+
     private void disconnect() {
         if(kvstore != null) {
             kvstore.disconnect();
             kvstore = null;
         }
     }
+
 
     private void printHelp() {
         StringBuilder sb = new StringBuilder();
@@ -152,6 +157,7 @@ public class KVClient implements IKVClient {
         System.out.println(sb.toString());
     }
 
+
     private void printPossibleLogLevels() {
         System.out.println(PROMPT 
                 + "Possible log levels are:");
@@ -159,13 +165,16 @@ public class KVClient implements IKVClient {
                 + "ALL | DEBUG | INFO | WARN | ERROR | FATAL | OFF");
     }
 
+
     private void printError(String error){
         System.out.println(PROMPT + "Error! " +  error);
     }
-    
+
+
     private void printInfo(String info){
         System.out.println(PROMPT + " " + info);
     }
+
 
     private String setLevel(String levelString) {
         if(levelString.equals(Level.ALL.toString())) {
@@ -193,7 +202,8 @@ public class KVClient implements IKVClient {
             return LogSetup.UNKNOWN_LEVEL;
         }
     }
- 
+
+
     public static void main(String[] args) {
         try {
             new LogSetup("logs/client.log", Level.OFF);
