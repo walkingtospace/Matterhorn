@@ -4,11 +4,14 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 
 public class KVLFUCache implements KVCache {
+
     HashMap<String, String> mainMap;
     HashMap<String, Integer> countMap;
     HashMap<Integer, LinkedHashSet<String>> countListMap;
     int capacity;
     int minCount = -1;
+
+
     public KVLFUCache(int cap) {
         capacity = cap;
         mainMap = new HashMap<>();
@@ -16,7 +19,8 @@ public class KVLFUCache implements KVCache {
         countListMap = new HashMap<>();
         countListMap.put(1, new LinkedHashSet<String>());
     }
-    
+
+
     public synchronized String get(String key) {
         if(!mainMap.containsKey(key))
             return null;
@@ -30,7 +34,8 @@ public class KVLFUCache implements KVCache {
         countListMap.get(count+1).add(key);
         return mainMap.get(key);
     }
-    
+
+
     public synchronized void set(String key, String value) {
         if(capacity<=0)
             return;
@@ -49,7 +54,8 @@ public class KVLFUCache implements KVCache {
         minCount = 1;
         countListMap.get(1).add(key);
     }
-    
+
+
     public synchronized void delete(String key) {
     	if(!mainMap.containsKey(key))
             return;
@@ -60,5 +66,4 @@ public class KVLFUCache implements KVCache {
     	
     	
     }
-    
 }
