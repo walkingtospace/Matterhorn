@@ -1,11 +1,29 @@
 package app_kvECS;
 
+// Java Import
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.UnknownHostException;
+
+// 3rd party library import
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+// Internal import
+import logger.LogSetup;
+
 import java.util.Map;
 import java.util.Collection;
 
 import ecs.IECSNode;
 
 public interface IECSClient {
+
+    private static Logger logger = Logger.getRootLogger();
+    private static final String PROMPT = "ECSClient> ";
+    private BufferedReader stdin;
+
     /**
      * Starts the storage service by calling start() on all KVServer instances that participate in the service.\
      * @throws Exception    some meaningfull exception on failure
