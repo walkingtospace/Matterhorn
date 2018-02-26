@@ -50,7 +50,7 @@ public class KVServer implements IKVServer {
 	private CacheStrategy strategy;
 	private KVCache cache;
 	
-	 private String dbPath = "./db/";
+	private String dbPath = "./db/";
 	
 	public KVServer(int port, int cacheSize, String strategy) {
 		this.port = port;

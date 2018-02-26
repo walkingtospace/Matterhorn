@@ -107,8 +107,8 @@ public class ClientConnection implements Runnable {
                             key = latestMsg.getKey();
                             value = "";
                             try {
-                                kvServer.deleteKV(key);
-                                status = StatusType.DELETE_SUCCESS;
+                            	boolean result = kvServer.deleteKV(key);
+                                status = result ? StatusType.DELETE_SUCCESS : StatusType.DELETE_ERROR;
                             } catch (Exception e) {
                                 logger.error("Error! Unable to DELETE key-value pair!", e);
                                 status = StatusType.DELETE_ERROR;

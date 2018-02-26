@@ -17,8 +17,6 @@ import java.nio.file.Files;
 import java.util.*;
 
 
-import logger.LogSetup;
-
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -42,24 +40,35 @@ public class KVServer implements IKVServer {
     private boolean running;
     private ServerSocket serverSocket;
     
-    private int port;
     private int cacheSize;
     private CacheStrategy strategy;
     private KVCache cache;
     
     private String dbPath = "./db/";
+    
+    private Metadata metaData;
+    private String name;
+    private String zkHostname;
+    private int zkPort;
+    private boolean writeLock;
 
     public KVServer(String name,
                     String zkHostname,
-                    int zkPort,
-                    int port,
-                    int cacheSize,
-                    String strategy) {
+                    int zkPort) {
         /* KenNote: The func signature is different in M2 */
-        this.port = port;
-        this.cacheSize = cacheSize;
+    	this.name = name;
+    	this.zkHostname = zkHostname;
+        this.zkPort = zkPort;
+        this.dbPath += name + "/";
+    }
+    
+    public void initKVServer(Metadata metadata, int cacheSize, String strategy) {
+    	
+    	this.metaData = metadata;
+    	this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         this.cache = createCache(this.strategy);
+        
         File dbDir = new File(dbPath);
         try{
             dbDir.mkdir();
@@ -72,7 +81,7 @@ public class KVServer implements IKVServer {
     @Override
     public int getPort(){
         /* KenNote: Just copied over from M1 */
-        return port;
+        return metaData.port;
     }
 
     @Override
@@ -156,6 +165,8 @@ public class KVServer implements IKVServer {
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
         /* KenNote: Just copied over from M1 */
+    	if (writeLock == true)
+    		return;
         if (cache != null) {
             if (value == cache.get(key)) {
                 // Update recency in case of LRU or count in case of LFU.
@@ -193,6 +204,22 @@ public class KVServer implements IKVServer {
                 + key + "'");
         }
     }
+    
+    @Override
+	public synchronized boolean deleteKV(String key) throws Exception{
+    	if (writeLock == true)
+    		return false;
+		boolean result = false;
+    	if (inCache(key))
+    		cache.delete(key);
+    	key += ".kv";
+    	File kvFile = new File(dbPath + key);
+    	if (kvFile.exists()) {
+    		kvFile.delete();
+    		result = true;
+    	}
+    	return result;
+	}
 
     @Override
     public synchronized void clearCache(){
@@ -219,7 +246,6 @@ public class KVServer implements IKVServer {
         if(serverSocket != null) {
             while(running){
                 try {
-                    port = serverSocket.getLocalPort();
                     Socket client = serverSocket.accept();                
                     ClientConnection connection = new ClientConnection(client, this);
                     new Thread(connection).start();
@@ -261,12 +287,12 @@ public class KVServer implements IKVServer {
 
     @Override
     public void lockWrite() {
-        // New: ECS related
+    	writeLock = true;
     }
 
     @Override
     public void unlockWrite() {
-        // New: ECS related
+    	writeLock = false;
     }
 
     @Override
@@ -280,7 +306,7 @@ public class KVServer implements IKVServer {
             serverSocket.close();
         } catch (IOException e) {
             logger.error("Error! " +
-                    "Unable to close socket on port: " + port, e);
+                    "Unable to close socket on port: " + getPort(), e);
         }
     }
 
@@ -304,7 +330,7 @@ public class KVServer implements IKVServer {
     private boolean initializeServer() {
         logger.info("Initialize server ...");
         try {
-            serverSocket = new ServerSocket(port);
+            serverSocket = new ServerSocket(getPort());
             logger.info("Server listening on port: " 
                     + serverSocket.getLocalPort());    
             return true;
@@ -312,7 +338,7 @@ public class KVServer implements IKVServer {
         } catch (IOException e) {
             logger.error("Error! Cannot open server socket:");
             if(e instanceof BindException){
-                logger.error("Port " + port + " is already bound!");
+                logger.error("Port " + getPort() + " is already bound!");
             }
             return false;
         }

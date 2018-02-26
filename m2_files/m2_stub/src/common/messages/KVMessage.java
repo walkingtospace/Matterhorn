@@ -1,4 +1,4 @@
-package common;
+package common.messages;
 
 import ecs.IECSNode;
 
@@ -12,6 +12,7 @@ public interface KVMessage {
 		PUT_SUCCESS, 	/* Put - request successful, tuple inserted */
 		PUT_UPDATE, 	/* Put - request successful, i.e. value updated */
 		PUT_ERROR, 		/* Put - request not successful */
+		DELETE,			/* Delete - request */
 		DELETE_SUCCESS, /* Delete - request successful */
 		DELETE_ERROR, 	/* Delete - request successful */
 

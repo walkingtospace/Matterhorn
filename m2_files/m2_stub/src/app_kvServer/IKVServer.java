@@ -60,6 +60,8 @@ public interface IKVServer {
      *      when key not in the key range of the server
      */
     public void putKV(String key, String value) throws Exception;
+    
+    public boolean deleteKV(String key) throws Exception;
 
     /**
      * Clear the local cache of the server
