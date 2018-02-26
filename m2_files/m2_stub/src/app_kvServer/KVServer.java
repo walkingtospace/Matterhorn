@@ -78,11 +78,13 @@ public class KVServer implements IKVServer {
         }
     }
 
+
     @Override
     public int getPort(){
         /* KenNote: Just copied over from M1 */
         return metaData.port;
     }
+
 
     @Override
     public String getHostname(){
@@ -95,17 +97,20 @@ public class KVServer implements IKVServer {
         }
     }
 
+
     @Override
     public CacheStrategy getCacheStrategy(){
         /* KenNote: Just copied over from M1 */
         return strategy;
     }
 
+
     @Override
     public int getCacheSize(){
         /* KenNote: Just copied over from M1 */
         return cacheSize;
     }
+
 
     @Override
     public boolean inStorage(String key){
@@ -119,6 +124,7 @@ public class KVServer implements IKVServer {
         return result;
     }
 
+
     @Override
     public synchronized boolean inCache(String key){
         /* KenNote: Just copied over from M1 */
@@ -127,6 +133,7 @@ public class KVServer implements IKVServer {
         }
         return false;
     }
+
 
     @Override
     public synchronized String getKV(String key) throws Exception{
@@ -161,6 +168,7 @@ public class KVServer implements IKVServer {
         }
         return value;
     }
+
 
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
@@ -221,11 +229,13 @@ public class KVServer implements IKVServer {
     	return result;
 	}
 
+
     @Override
     public synchronized void clearCache(){
         /* KenNote: Just copied over from M1 */
         cache = createCache(strategy);
     }
+
 
     @Override
     public synchronized void clearStorage(){
@@ -237,6 +247,7 @@ public class KVServer implements IKVServer {
             }
         }
     }
+
 
     @Override
     public void run(){
@@ -262,11 +273,13 @@ public class KVServer implements IKVServer {
         logger.info("Server stopped.");
     }
 
+
     @Override
     public void kill(){
         /* KenNote: Just copied over from M1 */
         stopServer();
     }
+
 
     @Override
     public void close(){
@@ -275,25 +288,30 @@ public class KVServer implements IKVServer {
         stopServer();
     }
 
+
     @Override
     public void start() {
         // New: ECS related
     }
+
 
     @Override
     public void stop() {
         // New: ECS related
     }
 
+
     @Override
     public void lockWrite() {
     	writeLock = true;
     }
 
+
     @Override
     public void unlockWrite() {
     	writeLock = false;
     }
+
 
     @Override
     public boolean moveData(String[] hashRange, String targetName) throws Exception {
@@ -309,6 +327,7 @@ public class KVServer implements IKVServer {
                     "Unable to close socket on port: " + getPort(), e);
         }
     }
+
 
     private KVCache createCache(CacheStrategy strategy){
         KVCache cache = null;
@@ -326,6 +345,7 @@ public class KVServer implements IKVServer {
         }
         return cache;
     }
+
 
     private boolean initializeServer() {
         logger.info("Initialize server ...");

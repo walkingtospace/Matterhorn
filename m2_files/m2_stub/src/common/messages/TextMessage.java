@@ -21,7 +21,8 @@ public class TextMessage implements Serializable, KVMessage{
     private static final char RETURN = 0x0D;
     private boolean isClient;
     private static Logger logger = Logger.getRootLogger();
-    
+
+
     public TextMessage(String opt, String key, String value) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("operation", opt);
@@ -32,7 +33,8 @@ public class TextMessage implements Serializable, KVMessage{
 //      StringWriter out = new StringWriter();
 //      jsonMessage.writeJSONString(out);
     }
-    
+
+
     public TextMessage(StatusType status, String key, String value) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("status", status.toString());
@@ -43,6 +45,7 @@ public class TextMessage implements Serializable, KVMessage{
 //      StringWriter out = new StringWriter();
 //      jsonMessage.writeJSONString(out);
     }
+
 
     /**
      * Constructs a TextMessage object with a given array of bytes that 
@@ -63,7 +66,8 @@ public class TextMessage implements Serializable, KVMessage{
                     "Unable to parse incoming bytes to json. \n", e);
         }
     }
-    
+
+
     /**
      * Constructs a TextMessage object with a given String that
      * forms the message. Only used for establishing connection
@@ -84,6 +88,7 @@ public class TextMessage implements Serializable, KVMessage{
         return msg;
     }
 
+
     /**
      * Returns an array of bytes that represent the ASCII coded message content.
      * 
@@ -93,7 +98,8 @@ public class TextMessage implements Serializable, KVMessage{
     public byte[] getMsgBytes() {
         return toByteArray(msg);
     }
-    
+
+
     private byte[] addCtrChars(byte[] bytes) {
         byte[] ctrBytes = new byte[]{LINE_FEED, RETURN};
         byte[] tmp = new byte[bytes.length + ctrBytes.length];
@@ -103,7 +109,8 @@ public class TextMessage implements Serializable, KVMessage{
         
         return tmp;     
     }
-    
+
+
     private byte[] toByteArray(String s){
         byte[] bytes = s.getBytes();
         byte[] ctrBytes = new byte[]{LINE_FEED, RETURN};
@@ -115,12 +122,14 @@ public class TextMessage implements Serializable, KVMessage{
         return tmp;     
     }
 
+
     @Override
     public String getKey() {
         if (jsonMessage == null)
             return null;
         return (String) jsonMessage.get("key");
     }
+
 
     @Override
     public String getValue() {
@@ -129,11 +138,11 @@ public class TextMessage implements Serializable, KVMessage{
         return (String) jsonMessage.get("value");
     }
 
+
     @Override
     public StatusType getStatus() {
         if (jsonMessage == null)
             return null;
         return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : jsonMessage.get("status")));
     }
-    
 }

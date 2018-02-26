@@ -17,17 +17,20 @@ public class OperationMessage implements Serializable, AdminMessage {
     private static final char RETURN = 0x0D;
     private static Logger logger = Logger.getRootLogger();
 
+
     public OperationMessage(OptType opt) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("operation", opt.toString());
         this.msg = jsonMessage.toString();
     }
 
+
     public OperationMessage(OptStatus opt_status) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("status", opt_status.toString());
         this.msg = jsonMessage.toString();
     }
+
 
     public OperationMessage(byte[] bytes) {
         this.msgBytes = addCtrChars(bytes);
@@ -41,9 +44,11 @@ public class OperationMessage implements Serializable, AdminMessage {
         }
     }
 
+
     public OperationMessage(String msg) {
         this.msg = msg;
     }
+
 
     @Override
     public OptType getOptType() {
@@ -52,6 +57,7 @@ public class OperationMessage implements Serializable, AdminMessage {
         return OptType.valueOf((String)(jsonMessage.get("operation")));
     }
 
+
     @Override
     public OptStatus getOptStatus() {
         if (jsonMessage == null)
@@ -59,14 +65,17 @@ public class OperationMessage implements Serializable, AdminMessage {
         return OptStatus.valueOf((String)(jsonMessage.get("status")));
     }
 
+
     public String getMsg() {
         return msg;
     }
 
+
     public byte[] getMsgBytes() {
         return toByteArray(msg);
     }
-    
+
+
     private byte[] addCtrChars(byte[] bytes) {
         byte[] ctrBytes = new byte[]{LINE_FEED, RETURN};
         byte[] tmp = new byte[bytes.length + ctrBytes.length];
@@ -76,7 +85,8 @@ public class OperationMessage implements Serializable, AdminMessage {
         
         return tmp;
     }
-    
+
+
     private byte[] toByteArray(String s){
         byte[] bytes = s.getBytes();
         byte[] ctrBytes = new byte[]{LINE_FEED, RETURN};
