@@ -4,20 +4,40 @@ package ecs;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.math.BigInteger;
+import java.lang.String;
 
 // Internal Import
 import common.messages.MetaData;
+import common.helper.MD5Hasher;
+
+// ZooKeeper Import
+import org.apache.zookeeper.ZooKeeper;
+
 
 public class ECS {
 
     private ArrayList<ServerConfig> availServers;
     private ArrayList<ServerConfig> usedServer;
+    private ArrayList<ESCNode> hashRing;
+    private MD5Hasher hasher;
     private MetaData metaData;
-    private String zkHost;
-    private int zkPort;
+    private static final String zkHost = "0.0.0.0";
+    private static final int zkPort = 2083;
 
     public ECS(String config_path) {
+        // Init the class variable
+        availServers = new ArrayList<ServerConfig>();
+        usedServer = new ArrayList<ServerConfig>();
+        hashRing = new ArrayList<ESCNode>();
+        hasher = new MD5Hasher();
+        metaData = new MetaData();
+
         // Read the content of the configuration file
+        
+
+        // Connect to ZK server
+        boolean status = this.connectToZK();
     }
 
 
@@ -80,4 +100,31 @@ public class ECS {
         return null;
     }
 
+
+    private boolean connectToZK() {
+        return false;
+    }
+
+
+    private IECSNode createECSNodeFromServerConfig(ServerConfig sc) {
+        // Calculate left and right hash of the server
+        BigInteger leftHash = 0;
+        BigInteger rightHash = 1;
+
+        // Populate the other attributes
+        ESCNode escn = new ESCNode(sc.getName(),
+                                   sc.getIP(),
+                                   sc.getPort(),
+                                   leftHash,
+                                   rightHash);
+
+        return escn;
+    }
+
+
+    private BigInteger hash_server(String ip, int port) {
+        String portString = String.valueOf(port);
+        String hash_input = ip + ":" + port;
+        return hasher.hashString(hash_input);
+    }
 }
