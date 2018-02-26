@@ -27,6 +27,8 @@ import cache.KVLRUCache;
 
 import app_kvServer.IKVServer;
 
+import common.messages.MetaData;
+
 public class KVServer implements IKVServer {
 
     /**
@@ -46,7 +48,7 @@ public class KVServer implements IKVServer {
     
     private String dbPath = "./db/";
     
-    private Metadata metaData;
+    private MetaData metaData;
     private String name;
     private String zkHostname;
     private int zkPort;
@@ -62,9 +64,9 @@ public class KVServer implements IKVServer {
         this.dbPath += name + "/";
     }
     
-    public void initKVServer(Metadata metadata, int cacheSize, String strategy) {
+    public void initKVServer(MetaData metaData, int cacheSize, String strategy) {
     	
-    	this.metaData = metadata;
+    	this.metaData = metaData;
     	this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         this.cache = createCache(this.strategy);
@@ -82,7 +84,7 @@ public class KVServer implements IKVServer {
     @Override
     public int getPort(){
         /* KenNote: Just copied over from M1 */
-        return metaData.port;
+        return metaData.getMetaData().get(name).port;
     }
 
 

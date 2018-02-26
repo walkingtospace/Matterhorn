@@ -17,11 +17,11 @@ public class MetaData {
                     int leftHash,
                     int rightHash) {
         try {
-            MetaDataEntry entry = new MetaDataEntry(serverPort,
+            MetaDataEntry entry = new MetaDataEntry(serverHost,
                                                     serverPort,
                                                     leftHash,
                                                     rightHash);
-            data[serverName] = entry;
+            data.put(serverName, entry);
             return true;
         } catch (Exception e) {
             return false;
@@ -33,7 +33,7 @@ public class MetaData {
             data.remove(serverName);
             return true;
         } catch (Exception e) {
-            return false
+            return false;
         }
     }
 
