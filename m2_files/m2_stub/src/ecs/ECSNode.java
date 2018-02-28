@@ -11,11 +11,7 @@ public class ECSNode implements IECSNode {
     private BigInteger leftHash;
     private BigInteger rightHash;
 
-    public ESCNode(String iNodeName,
-                   String iNodeHost,
-                   int iNodePort,
-                   BigInteger iLeftHash,
-                   BigInteger iRightHash) {
+    public ECSNode(String iNodeName, String iNodeHost, int iNodePort, BigInteger iLeftHash, BigInteger iRightHash) {
         nodeName = iNodeName;
         nodeHost = iNodeHost;
         nodePort = iNodePort;

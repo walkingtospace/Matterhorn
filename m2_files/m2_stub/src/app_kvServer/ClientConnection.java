@@ -7,8 +7,8 @@ import java.net.Socket;
 
 import org.apache.log4j.*;
 
-import common.messages.KVMessage.StatusType;
-import common.messages.TextMessage;
+import common.message.TextMessage;
+import common.message.KVMessage.StatusType;
 
 
 /**

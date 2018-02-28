@@ -8,8 +8,8 @@ import java.io.OutputStream;
 
 import org.apache.log4j.Logger;
 
-import common.messages.KVMessage;
-import common.messages.TextMessage;
+import common.message.KVMessage;
+import common.message.TextMessage;
 
 public class KVStore implements KVCommInterface {
     /**

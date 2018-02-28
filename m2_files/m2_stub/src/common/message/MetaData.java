@@ -1,21 +1,23 @@
-package common.messages;
+package common.message;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.lang.Exception;
+import java.math.BigInteger;
 
 public class MetaData {
 
     private Map<String, MetaDataEntry> data;
 
     public MetaData() {
-        data = new Map<String, MetaDataEntry>();
+        data = new HashMap<String, MetaDataEntry>();
     }
 
     public boolean addEntry(String serverName,
                     String serverHost,
                     int serverPort,
-                    int leftHash,
-                    int rightHash) {
+                    BigInteger leftHash,
+                    BigInteger rightHash) {
         try {
             MetaDataEntry entry = new MetaDataEntry(serverHost,
                                                     serverPort,
@@ -37,7 +39,7 @@ public class MetaData {
         }
     }
 
-    public MetaData getMetaData() {
+    public Map<String, MetaDataEntry> getMetaData() {
         return data;
     }
 }
