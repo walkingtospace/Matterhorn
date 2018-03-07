@@ -8,12 +8,14 @@ public class ECSNode implements IECSNode {
     private String nodeName;
     private String nodeHost;
     private int nodePort;
+    private BigInteger nameHash;
     private BigInteger leftHash;
     private BigInteger rightHash;
 
     public ESCNode(String iNodeName,
                    String iNodeHost,
                    int iNodePort,
+                   BigInteger nameHash,
                    BigInteger iLeftHash,
                    BigInteger iRightHash) {
         nodeName = iNodeName;
@@ -66,7 +68,23 @@ public class ECSNode implements IECSNode {
         return this.leftHash;
     }
 
+
+    public void setLeftHash(BigInteger hash) {
+        this.leftHash = hash;
+    }
+
+
     public BigInteger getRightHash() {
         return this.rightHash;
+    }
+
+
+    public void setRightHash(BigInteger hash) {
+        return this.rightHash = hash;
+    }
+
+
+    public BigInteger getNameHash() {
+        return this.nameHash;
     }
 }
