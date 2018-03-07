@@ -5,14 +5,14 @@ import java.math.BigInteger;
 
 public class ECSNode implements IECSNode {
 
-    private String nodeName;
-    private String nodeHost;
-    private int nodePort;
-    private BigInteger nameHash;
-    private BigInteger leftHash;
-    private BigInteger rightHash;
+    public String nodeName;
+    public String nodeHost;
+    public int nodePort;
+    public BigInteger nameHash;
+    public BigInteger leftHash;
+    public BigInteger rightHash;
 
-    public ESCNode(String NodeName,
+    public ECSNode(String NodeName,
                    String NodeHost,
                    int NodePort,
                    BigInteger nameHash,
@@ -62,30 +62,5 @@ public class ECSNode implements IECSNode {
         result[0] = this.leftHash.toString(16);
         result[1] = this.rightHash.toString(16);
         return result;
-    }
-
-
-    public BigInteger getLeftHash() {
-        return this.leftHash;
-    }
-
-
-    public void setLeftHash(BigInteger hash) {
-        this.leftHash = hash;
-    }
-
-
-    public BigInteger getRightHash() {
-        return this.rightHash;
-    }
-
-
-    public void setRightHash(BigInteger hash) {
-        return this.rightHash = hash;
-    }
-
-
-    public BigInteger getNameHash() {
-        return this.nameHash;
     }
 }

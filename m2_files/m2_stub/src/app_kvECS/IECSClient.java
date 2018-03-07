@@ -19,11 +19,6 @@ import java.util.Collection;
 import ecs.IECSNode;
 
 public interface IECSClient {
-
-    private static Logger logger = Logger.getRootLogger();
-    private static final String PROMPT = "ECSClient> ";
-    private BufferedReader stdin;
-
     /**
      * Starts the storage service by calling start() on all KVServer instances that participate in the service.\
      * @throws Exception    some meaningfull exception on failure

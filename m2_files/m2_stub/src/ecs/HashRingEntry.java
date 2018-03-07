@@ -1,13 +1,13 @@
-package esc
+package ecs;
 
 import java.math.BigInteger;
 
 public class HashRingEntry {
 
-    public IESCNode escn;
+    public IECSNode escn;
     public BigInteger hashValue;
 
-    public HashRingEntry(IESCNode escn, BigInteger hashValue) {
+    public HashRingEntry(IECSNode escn, BigInteger hashValue) {
         this.escn = escn;
         this.hashValue = hashValue;
     }

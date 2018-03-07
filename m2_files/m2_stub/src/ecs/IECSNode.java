@@ -1,8 +1,17 @@
 package ecs;
 
+import java.math.BigInteger;
+
 public interface IECSNode {
 
-    /**
+//    public String nodeName = "";
+//    public String nodeHost = "";
+//    public int nodePort = -1;
+//    public BigInteger nameHash = null;
+//    public BigInteger leftHash = null;
+//    public BigInteger rightHash = null;
+
+	/**
      * @return  the name of the node (ie "Server 8.8.8.8")
      */
     public String getNodeName();

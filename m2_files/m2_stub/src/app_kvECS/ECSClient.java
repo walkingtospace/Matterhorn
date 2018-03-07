@@ -5,8 +5,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Collection;
+import java.util.Arrays;
 import java.lang.Integer;
 
 // 3rd party library import
@@ -27,10 +29,10 @@ public class ECSClient implements IECSClient {
     private ECS ecs;
     private static final String PROMPT = "ECSClient> ";
     private static final String CONFIGPATH = "esc.config";
-
+    private boolean stop = false;
 
     public ECSClient() {
-        ecs = ECS(CONFIGPATH);
+        ecs = new ECS(CONFIGPATH);
     }
 
     public void run() {
@@ -51,6 +53,7 @@ public class ECSClient implements IECSClient {
         String[] tokens = cmdLine.split("\\s+");
 
         if(tokens[0].equals("quit")) {
+        	stop = true;
             printInfo("Application exit!");
         } else if (tokens[0].equals("addNodes")){
             this.addNodes(Integer.parseInt(tokens[1]), tokens[2],
@@ -62,9 +65,14 @@ public class ECSClient implements IECSClient {
         } else if(tokens[0].equals("shutdown")) {
             this.shutdown();
         } else if(tokens[0].equals("addNode")) {
-            this.addNode(tokens[1], Integer.parseInt(tokens[2]))
+            this.addNode(tokens[1], Integer.parseInt(tokens[2]));
         } else if(tokens[0].equals("removeNode")) {
-            this.removeNode(tokens[1:]);
+        	ArrayList<String> nodeList = new ArrayList<String>();
+        	int i = 1;
+        	while(i < tokens.length) {
+        		nodeList.add(tokens[i]);
+        	}
+            this.removeNodes(nodeList);
         } else if(tokens[0].equals("logLevel")) {
             if(tokens.length == 2) {
                 String level = setLevel(tokens[1]);

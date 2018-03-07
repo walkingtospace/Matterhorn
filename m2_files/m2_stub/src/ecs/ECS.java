@@ -4,7 +4,7 @@ package ecs;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.lang.Integer;
-import java.lang.Process
+import java.lang.Process;
 import java.lang.Runtime;
 import java.lang.String;
 import java.math.BigInteger;
@@ -12,6 +12,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Random;
+
+// Exception
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 // Internal Import
 import common.helper.MD5Hasher;
@@ -23,8 +28,8 @@ import org.apache.zookeeper.ZooKeeper;
 
 public class ECS {
 
-    private ArrayList<IESCNode> availServers;
-    private ArrayList<IESCNode> usedServer;
+    private ArrayList<IECSNode> availServers;
+    private ArrayList<IECSNode> usedServer;
     private ArrayList<HashRingEntry> hashRing;
     private Map<String, IECSNode> escnMap;
     private MD5Hasher hasher;
@@ -34,18 +39,21 @@ public class ECS {
 
     public ECS(String configPath) {
         // Init the class variable
-        availServers = new ArrayList<IESCNode>();
-        usedServer = new ArrayList<IESCNode>();
+        availServers = new ArrayList<IECSNode>();
+        usedServer = new ArrayList<IECSNode>();
         hashRing = new ArrayList<HashRingEntry>();
-        escnMap = new Map<String, IECSNode>();
-        hasher = new MD5Hasher();
         metaData = new MetaData();
+        try {
+			hasher = new MD5Hasher();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 
         // Read the content of the configuration file
         boolean status = this.parseConfig(configPath);
 
         // Connect to ZK server
-        boolean status = this.connectToZK();
+        status = this.connectToZK();
     }
 
 
@@ -53,7 +61,7 @@ public class ECS {
         boolean status;
         boolean global_status = true;
 
-        for (ESCNode esc: availServers) {
+        for (IECSNode esc: availServers) {
             status = startServer(esc);
             if (status == false) {
                 global_status = false;
@@ -69,7 +77,7 @@ public class ECS {
         boolean status;
         boolean global_status = true;
 
-        for (ESCNode esc: availServers) {
+        for (IECSNode esc: availServers) {
             status = stopServer(esc);
             if (status == false) {
                 global_status = false;
@@ -85,7 +93,7 @@ public class ECS {
         boolean status;
         boolean global_status = true;
 
-        for (ESCNode esc: availServers) {
+        for (IECSNode esc: availServers) {
             status = shutdownServer(esc);
             if (status == false) {
                 global_status = false;
@@ -100,7 +108,7 @@ public class ECS {
     public IECSNode addNode(String cacheStrategy, int cacheSize) {
         boolean status;
         // Randomly pick one available server from a list of available servers
-        ESCNode availServer = this.randomlyPickOneAvailServer();
+        IECSNode availServer = this.randomlyPickOneAvailServer();
         
         if (availServer == null) {
             System.out.print("No server is available");
@@ -113,25 +121,25 @@ public class ECS {
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
 
         // Add the ECSNode to the hashring
-        boolean status = this.addECSNodeToHashRing(escn);
+        status = this.addECSNodeToHashRing(availServer);
 
         // Configure the hash range of the node
-        boolean status = this.recalculateHashRange();
+        status = this.recalculateHashRange();
 
         // Trigger the start of server
-        boolean status = this.runServerOnShell();
+        status = this.runServerOnShell();
         if (status == false) {
             System.out.println("Failed to start server on shell");
             return null;
         }
 
-        return escn;
+        return availServer;
     }
 
 
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
-        Collection<IECSNode> res = new Collection<IECSNode>();
-
+        ArrayList<IECSNode> res = new ArrayList<IECSNode>();
+ 
         if (availServers.size() < count) {
             System.out.println("Not enough free servers");
             return res;
@@ -140,11 +148,11 @@ public class ECS {
         int i = count;
         IECSNode new_node;
         while(i > 0) {
-            new_node = addNode(cacheStrategy, cacheSize)
+            new_node = addNode(cacheStrategy, cacheSize);
             if (new_node != null) {
                 res.add(new_node);
             } else {
-                System.println("Something is wrong. Node not added to addNodes");
+                System.out.println("Something is wrong. Node not added to addNodes");
             }
             i--;
         }
@@ -177,7 +185,7 @@ public class ECS {
 
 
     public IECSNode getNodeByKey(String Key) {
-        return escnMap[key];
+        return escnMap.get(Key);
     }
 
 
@@ -211,17 +219,19 @@ public class ECS {
             while((line = bufferedReader.readLine()) != null) {
                 String[] tokens = line.split("\\s+");
                 // Each line should look like this server1 127.0.0.1 50000
-                ESCNode sc = new ESCNode(tokens[0],
+                ECSNode sc = new ECSNode(tokens[0],
                                          tokens[1],
                                          Integer.parseInt(tokens[2]),
-                                         -1,
-                                         -1);
-                this.escnMap[tokens[0]] = sc;
-                this.availServers.push(sc);
+                                         new BigInteger("-1"),
+                                         new BigInteger("-1"),
+                                         new BigInteger("-1"));
+                this.escnMap.put(tokens[0], sc);
+                this.availServers.add(sc);
             }
 
             // Always close files.
             bufferedReader.close();
+            return true;
         }
         catch(FileNotFoundException ex) {
             System.out.println(
@@ -242,62 +252,68 @@ public class ECS {
         Process proc;
         String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
         Runtime run = Runtime.getRuntime();
+ 
         try {
-          proc = run.exec(script);
+          proc = run.exec(command);
+          return true;
         } catch (IOException e) {
           e.printStackTrace();
+          return false;
         }
     }
 
 
-    private ESCNode randomlyPickOneAvailServer() {
+    private IECSNode randomlyPickOneAvailServer() {
         Random rand = new Random();
         int arr_size = this.availServers.size();
         if (arr_size == 0) {
             return null;
         }
-
         int i = rand.nextInt(arr_size);
 
-        return this.availServers[i];
+        return this.availServers.get(i);
     }
 
 
-    private boolean markServerUnavail(ESCNode escn) {
+    private boolean markServerUnavail(IECSNode escn) {
         // add escn to usedServer
-        this.usedServer.push(escn);
+        this.usedServer.add(escn);
         // remove escb from availServer
         this.availServers.remove(escn);
+
+        return true;
     }
 
 
-
-    private boolean markServeravail(ESCNode escn) {
+    private boolean markServeravail(IECSNode escn) {
         // add escn to usedServer
-        this.availServers.push(escn);
+        this.availServers.add(escn);
         // remove escb from availServer
         this.usedServer.remove(escn);
+        
+        return true;
     }
 
 
-    private boolean createZnode(ESCNode escn) {
+    private boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
         // use Zookeeper
+    	return false;
     }
 
 
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
-        BigInteger nameHash = hasher.hashString(escn);
+        BigInteger nameHash = hasher.hashString(escn.getNodeName());
         HashRingEntry ringEntry = new HashRingEntry(escn, nameHash);
 
         // Insert the ringEntry into the hash ring that preserves order
         if (this.hashRing.size() == 0) {
-            this.hashRing.push(ringEntry);
+            this.hashRing.add(ringEntry);
         } else {
             // Find the index of the position
             int i = 0;
             while(i < this.hashRing.size()) {
-                if (this.hashRing[i].hashValue >= nameHash) {
+                if (this.hashRing.get(i).hashValue.compareTo(nameHash) == -1) {
                     break;
                 }
                 i++;
@@ -314,46 +330,54 @@ public class ECS {
         int numRingEntry = this.hashRing.size();
         int i = 0;
         HashRingEntry ringEntry;
-        boolean status;
+        boolean status = true;
+        ECSNode escn;
 
         // if there's only one entry
         if (numRingEntry == 1) {
-            ringEntry = this.hashRing[0]
-            ringEntry.escn.setLeftHash(""); // Minimal Hash
-            ringEntry.escn.setRightHash(""); // Biggest Hash
+            ringEntry = this.hashRing.get(0);
+            escn = (ECSNode)ringEntry.escn;
+            escn.leftHash = new BigInteger("0"); // Minimal Hash
+            escn.rightHash = new BigInteger("FFFFFF"); // Biggest Hash
             status = updateZnode(ringEntry.escn);
         } else {
             while(i < numRingEntry) {
-                ringEntry = this.hashRing[i];
+                ringEntry = this.hashRing.get(0);
+                escn = (ECSNode)ringEntry.escn;
                 if(i == 0) {
-                    ringEntry.escn.setLeftHash(hashRing[numRingEntry - 1].hashValue)
-                    ringEntry.escn.setRightHash(ringEntry.hashValue);
+                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
+                	escn.rightHash = ringEntry.hashValue;
                 } else {
                     // Last entry
-                    ringEntry.escn.setLeftHash(hashRing[i - 1].hashValue);
-                    ringEntry.escn.setRightHash(hashRing[i].hashValue);
+                	escn.leftHash = hashRing.get(i - 1).hashValue;
+                    escn.rightHash = hashRing.get(i).hashValue;
                 }
                 status = updateZnode(ringEntry.escn);
                 i++;
             }
         }
+        return status;
     }
 
     private boolean updateZnode(IECSNode escn) {
         // update znode
+    	return false;
     }
 
     private boolean startServer(IECSNode escn) {
         // Change the state of node in Znode to start
+    	return false;
     }
 
 
     private boolean stopServer(IECSNode escn) {
         // Change the state of node in Znode to stop
+    	return false;
     }
 
 
     private boolean shutdownServer(IECSNode escn) {
-        // Use SSH to shutdown and kill the node 
+        // Use SSH to shutdown and kill the node
+    	return false;
     }
 }
