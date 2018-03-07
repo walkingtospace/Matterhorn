@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.Random;
 
 // Internal Import
-import common.messages.MetaData;
 import common.helper.MD5Hasher;
+import common.message.MetaData;
 
 // ZooKeeper Import
 import org.apache.zookeeper.ZooKeeper;

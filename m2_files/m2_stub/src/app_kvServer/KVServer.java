@@ -27,7 +27,7 @@ import cache.KVLRUCache;
 
 import app_kvServer.IKVServer;
 
-import common.messages.MetaData;
+import common.message.MetaData;
 
 public class KVServer implements IKVServer {
 
@@ -84,7 +84,7 @@ public class KVServer implements IKVServer {
     @Override
     public int getPort(){
         /* KenNote: Just copied over from M1 */
-        return metaData.getMetaData().get(name).port;
+        return metaData.getMetaData().get(name).serverPort;
     }
 
 

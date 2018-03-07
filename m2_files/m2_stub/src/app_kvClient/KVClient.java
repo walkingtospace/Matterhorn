@@ -10,13 +10,12 @@ import java.net.UnknownHostException;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-// Internal import
-import logger.LogSetup;
 
 import client.KVCommInterface;
 import client.KVStore;
 
-import common.messages.KVMessage;
+import logger.LogSetup;
+import common.message.KVMessage;
 
 
 public class KVClient implements IKVClient {

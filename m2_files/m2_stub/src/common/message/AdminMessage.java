@@ -1,4 +1,4 @@
-package common.messages;
+package common.message;
 
 public interface AdminMessage {
     

@@ -89,7 +89,7 @@ public class ECSClient implements IECSClient {
 
     @Override
     public boolean start() {
-        return esc.start();
+        return ecs.start();
     }
 
 
@@ -107,43 +107,43 @@ public class ECSClient implements IECSClient {
 
     @Override
     public IECSNode addNode(String cacheStrategy, int cacheSize) {
-        return esc.addNode(cacheStrategy, cacheSize);
+        return ecs.addNode(cacheStrategy, cacheSize);
     }
 
 
     @Override
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
-        return esc.addNodes(count, cacheStrategy, cacheSize);
+        return ecs.addNodes(count, cacheStrategy, cacheSize);
     }
 
 
     @Override
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
-        return esc.setupNodes(count, cacheStrategy, cacheSize);
+        return ecs.setupNodes(count, cacheStrategy, cacheSize);
     }
 
 
     @Override
     public boolean awaitNodes(int count, int timeout) throws Exception {
-        return esc.awaitNodes(count, timeout);
+        return ecs.awaitNodes(count, timeout);
     }
 
 
     @Override
     public boolean removeNodes(Collection<String> nodeNames) {
-        return esc.removeNodes(nodeNames);
+        return ecs.removeNodes(nodeNames);
     }
 
 
     @Override
     public Map<String, IECSNode> getNodes() {
-        return esc.getNodes();
+        return ecs.getNodes();
     }
 
 
     @Override
-    public IECSNode getNodeByKey(String Key) {
-        return esc.getNodeByKey(key);
+    public IECSNode getNodeByKey(String key) {
+        return ecs.getNodeByKey(key);
     }
 
 

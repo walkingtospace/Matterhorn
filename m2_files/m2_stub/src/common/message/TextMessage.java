@@ -1,4 +1,4 @@
-package common.messages;
+package common.message;
 
 import java.io.Serializable;
 
@@ -6,6 +6,8 @@ import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
+import ecs.IECSNode;
 
 /**
  * Represents a simple text message, which is intended to be received and sent 
@@ -145,4 +147,11 @@ public class TextMessage implements Serializable, KVMessage{
             return null;
         return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : jsonMessage.get("status")));
     }
+
+
+	@Override
+	public IECSNode getResponsibleServer() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

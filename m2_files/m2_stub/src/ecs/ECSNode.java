@@ -12,17 +12,18 @@ public class ECSNode implements IECSNode {
     private BigInteger leftHash;
     private BigInteger rightHash;
 
-    public ESCNode(String iNodeName,
-                   String iNodeHost,
-                   int iNodePort,
+    public ESCNode(String NodeName,
+                   String NodeHost,
+                   int NodePort,
                    BigInteger nameHash,
-                   BigInteger iLeftHash,
-                   BigInteger iRightHash) {
-        nodeName = iNodeName;
-        nodeHost = iNodeHost;
-        nodePort = iNodePort;
-        leftHash = iLeftHash;
-        rightHash = iRightHash;
+                   BigInteger LeftHash,
+                   BigInteger RightHash) {
+        this.nodeName = NodeName;
+        this.nodeHost = NodeHost;
+        this.nodePort = NodePort;
+        this.leftHash = LeftHash;
+        this.rightHash = RightHash;
+        this.nameHash = nameHash;
     }
 
     /**
