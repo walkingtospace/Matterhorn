@@ -24,9 +24,12 @@ import common.message.MetaData;
 
 // ZooKeeper Import
 import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.KeeperException;
 
 
-public class ECS {
+public class ECS implements Watcher{
 
     private ArrayList<IECSNode> availServers;
     private ArrayList<IECSNode> usedServer;
@@ -36,7 +39,14 @@ public class ECS {
     private MetaData metaData;
     private static final String zkHost = "0.0.0.0";
     private static final int zkPort = 2083;
+    private ZooKeeper zk;
 
+    // Testing only, need to remove main!
+    public static void main() {
+    	ECS ecs = new ECS("");
+    }
+
+    
     public ECS(String configPath) {
         // Init the class variable
         availServers = new ArrayList<IECSNode>();
@@ -53,7 +63,15 @@ public class ECS {
         boolean status = this.parseConfig(configPath);
 
         // Connect to ZK server
-        status = this.connectToZK();
+        try {
+			status = this.connectToZK();
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
 
@@ -188,9 +206,13 @@ public class ECS {
         return escnMap.get(Key);
     }
 
+    public void process(WatchedEvent event) {
+        return;
+    }
 
-    private boolean connectToZK() {
+    private boolean connectToZK() throws KeeperException, IOException{
         // Use Zookeeper
+    	this.zk = new ZooKeeper(this.zkHost, this.zkPort, this);
         return false;
     }
 
