@@ -28,7 +28,7 @@ public class ECSClient implements IECSClient {
     private BufferedReader stdin;
     private ECS ecs;
     private static final String PROMPT = "ECSClient> ";
-    private static final String CONFIGPATH = "esc.config";
+    private static final String CONFIGPATH = "./esc.config";
     private boolean stop = false;
 
     
