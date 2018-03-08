@@ -5,6 +5,5 @@ bin
 db
 .metadata
 *.MF
-*.jar
 *.txt
 .*
