@@ -31,21 +31,20 @@ public class ECSClient implements IECSClient {
     private static final String CONFIGPATH = "esc.config";
     private boolean stop = false;
 
-    public ECSClient() {
-        ecs = new ECS(CONFIGPATH);
-    }
-
+    
     public void run() {
-        while(!stop) {
-            stdin = new BufferedReader(new InputStreamReader(System.in));
-            System.out.print(PROMPT);
-            try {
-                String cmdLine = stdin.readLine();
-                this.handleCommand(cmdLine);
-            } catch (IOException e) {
-                printError("CLI does not respond - Application terminated ");
-            }
-        }
+    	ecs = new ECS(CONFIGPATH);
+    	// Comment out for test
+//        while(!stop) {
+//            stdin = new BufferedReader(new InputStreamReader(System.in));
+//            System.out.print(PROMPT);
+//            try {
+//                String cmdLine = stdin.readLine();
+//                this.handleCommand(cmdLine);
+//            } catch (IOException e) {
+//                printError("CLI does not respond - Application terminated ");
+//            }
+//        }
     }
 
 

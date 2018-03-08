@@ -41,11 +41,6 @@ public class ECS implements Watcher{
     private static final int zkPort = 2083;
     private ZooKeeper zk;
 
-    // Testing only, need to remove main!
-    public static void main() {
-    	ECS ecs = new ECS("");
-    }
-
     
     public ECS(String configPath) {
         // Init the class variable
