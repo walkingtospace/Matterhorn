@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -16,9 +17,13 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.*;
 
+import logger.LogSetup;
+
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import client.KVStore;
 
 import cache.KVCache;
 import cache.KVFIFOCache;
@@ -27,7 +32,9 @@ import cache.KVLRUCache;
 
 import app_kvServer.IKVServer;
 
+import common.helper.MD5Hasher;
 import common.message.MetaData;
+import common.message.MetaDataEntry;
 
 public class KVServer implements IKVServer {
 
@@ -48,7 +55,7 @@ public class KVServer implements IKVServer {
     
     private String dbPath = "./db/";
     
-    private MetaData metaData;
+    private MetaDataEntry metaDataEntry;
     private String name;
     private String zkHostname;
     private int zkPort;
@@ -64,9 +71,9 @@ public class KVServer implements IKVServer {
         this.dbPath += name + "/";
     }
     
-    public void initKVServer(MetaData metaData, int cacheSize, String strategy) {
+    public void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
     	
-    	this.metaData = metaData;
+    	this.metaDataEntry = metaDataEntry;
     	this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         this.cache = createCache(this.strategy);
@@ -78,13 +85,49 @@ public class KVServer implements IKVServer {
         catch(SecurityException se){
             logger.error("Error! Can't create database folder");
         }
+        running = initializeServer();
+        if(serverSocket != null) {
+            while(running){
+                try {
+                    Socket client = serverSocket.accept();                
+                    ClientConnection connection = new ClientConnection(client, this);
+                    new Thread(connection).start();
+                    
+                    logger.info("Connected to " 
+                            + client.getInetAddress().getHostName() 
+                            +  " on port " + client.getPort());
+                } catch (IOException e) {
+                    logger.error("Error! " +
+                            "Unable to establish connection. \n", e);
+                }
+            }
+        }
+        logger.info("Server stopped.");
     }
+    
+    // invoker should provide zkHostname, zkPort, name
+    public static void main(String[] args) {
+		try {
+			if (args.length != 4) {
+				System.out.println("Wrong number of arguments passed to server");
+			}
+			new LogSetup("logs/server.log", Level.ALL);
+			String zkHostname = args[0];
+			int zkPort = Integer.parseInt(args[1]);
+			String name = args[2];
+			KVServer server = new KVServer(name, zkHostname, zkPort);
+			server.run();
+		} catch(Exception e) {
+			logger.error("Error! Can't start server");
+		}
+	}
+
 
 
     @Override
     public int getPort(){
         /* KenNote: Just copied over from M1 */
-        return metaData.getMetaData().get(name).serverPort;
+        return metaDataEntry.serverPort;
     }
 
 
@@ -149,13 +192,7 @@ public class KVServer implements IKVServer {
         }
         key += ".kv";
         try {
-            File kvFile = new File(dbPath + key);
-            if (kvFile.exists()) {
-                FileReader fileReader = new FileReader(kvFile);
-                BufferedReader bufferedReader = new BufferedReader(fileReader);
-                value = bufferedReader.readLine();
-                bufferedReader.close();
-            }
+        	value = getValueFromFile(dbPath + key);
             return value;
         }
         catch(FileNotFoundException ex) {
@@ -313,13 +350,55 @@ public class KVServer implements IKVServer {
     public void unlockWrite() {
     	writeLock = false;
     }
+    
+    @Override
+    public void update(MetaDataEntry metaDataEntry) {
+    	this.metaDataEntry = metaDataEntry;
+    }
 
 
     @Override
-    public boolean moveData(String[] hashRange, String targetName) throws Exception {
-        // TODO
-        return false;
+    // assume hashRange is given in clockwise rotation
+    public boolean moveData(BigInteger[] hashRange, String targetName) throws Exception {
+    	// special case: hashRange across starting of the ring or end of the ring
+    	if (hashRange[0].compareTo(hashRange[1]) == 1) {
+    		hashRange[1] = hashRange[1].add(hashRange[0]);
+    	}
+    	// logic to retrive MetaData
+    	MetaDataEntry targetMetaDataEntry = metaData.getMetaData().get(targetName);
+    	KVStore migrationClient = new KVStore(targetMetaDataEntry.serverHost, targetMetaDataEntry.serverPort);
+    	
+    	migrationClient.connect();
+    	MD5Hasher hasher = new MD5Hasher();
+    	File[] files = new File(dbPath).listFiles();
+        for (File file: files) {
+        	String fileName = file.toString();
+            if (fileName.endsWith(".kv")) {
+                String key = fileName.substring(0, fileName.length() - 4);
+                BigInteger hashValue = hasher.hashString(key);
+                
+                if (hashValue.compareTo(hashRange[0]) == 1 && hashValue.compareTo(hashRange[1]) == -1) {
+                	String value = getValueFromFile(dbPath + fileName);
+                	migrationClient.put(key, value);
+                }
+            }
+        }
+        migrationClient.disconnect();
+        return true;
     }
+    
+    private String getValueFromFile(String path) throws IOException {
+    	File kvFile = new File(path);
+    	String value = null;
+        if (kvFile.exists()) {
+            FileReader fileReader = new FileReader(kvFile);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            value = bufferedReader.readLine();
+            bufferedReader.close();
+        }
+        return value;
+    }
+    
     private void stopServer() {
         running = false;
         try {

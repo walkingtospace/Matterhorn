@@ -267,6 +267,8 @@ public class ECS implements Watcher{
 
     private boolean runServerOnShell() {
         Process proc;
+        // Zeqi note: invoke kvServer should pass in zkHostname, zkPort and serverName
+        // zkHostname "0.0.0.0" might not work across the LAN, needs the true ip
         String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
         Runtime run = Runtime.getRuntime();
  
