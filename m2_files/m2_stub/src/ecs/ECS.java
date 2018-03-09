@@ -33,7 +33,7 @@ import org.apache.zookeeper.KeeperException;
 public class ECS implements Watcher{
 
     private ArrayList<IECSNode> availServers;
-    private ArrayList<IECSNode> usedServer;
+    private ArrayList<IECSNode> usedServers;
     private ArrayList<HashRingEntry> hashRing;
     private HashMap<String, IECSNode> escnMap;
     private MD5Hasher hasher;
@@ -46,7 +46,7 @@ public class ECS implements Watcher{
     public ECS(String configPath) {
         // Init the class variable
         this.availServers = new ArrayList<IECSNode>();
-        this.usedServer = new ArrayList<IECSNode>();
+        this.usedServers = new ArrayList<IECSNode>();
         this.hashRing = new ArrayList<HashRingEntry>();
         this.metaData = new MetaData();
         this.escnMap = new HashMap<String, IECSNode>();
@@ -69,8 +69,50 @@ public class ECS implements Watcher{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+        
+        // Need to remove
+        this.test();
     }
 
+    // Purely testing purpose. Should remove after everything is done
+    public void test() {
+    	// print available servers
+    	for (IECSNode escn: this.availServers) {
+    		System.out.println(escn);
+    	}
+    	System.out.println("------test random pick---");
+    	System.out.println(this.randomlyPickOneAvailServer());
+    	System.out.println(this.randomlyPickOneAvailServer());
+    	System.out.println(this.randomlyPickOneAvailServer());
+    	System.out.println(this.randomlyPickOneAvailServer());
+    	System.out.println("-----test mark avail----");
+    	this.markServerUnavail(this.availServers.get(0));
+    	this.markServerUnavail(this.availServers.get(0));
+    	this.markServerUnavail(this.availServers.get(1));
+    	for (IECSNode escn: this.availServers) {
+    		System.out.println(escn);
+    	}
+    	System.out.println("--");
+    	for (IECSNode escn: this.usedServers) {
+    		System.out.println(escn);
+    	}
+    	System.out.println("+++++++++++");
+    	this.markServeravail(this.usedServers.get(0));
+    	this.markServeravail(this.usedServers.get(0));
+    	this.markServeravail(this.usedServers.get(0));
+    	for (IECSNode escn: this.availServers) {
+    		System.out.println(escn);
+    	}
+    	System.out.println("--");
+    	for (IECSNode escn: this.usedServers) {
+    		System.out.println(escn);
+    	}
+    	
+    	// Test consistent hashing
+    	System.out.println("--------- test consistent hashing -----------");
+    	this.addNode("FIFO", 1024);
+    	
+    }
 
     public boolean start() {
         boolean status;
@@ -210,9 +252,7 @@ public class ECS implements Watcher{
     private boolean connectToZK() throws KeeperException, IOException{
         // Use Zookeeper
     	String connection = this.zkHost + ":" + Integer.toString(this.zkPort);
-    	System.out.println(connection);
     	this.zk = new ZooKeeper(connection, 3000, this);
-    	System.out.println("Hi");
         return false;
     }
 
@@ -244,10 +284,9 @@ public class ECS implements Watcher{
                 ECSNode sc = new ECSNode(tokens[0],
                                          tokens[1],
                                          Integer.parseInt(tokens[2]),
-                                         new BigInteger("-1"),
-                                         new BigInteger("-1"),
-                                         new BigInteger("-1"));
-                System.out.println(tokens[0]);
+                                         "-1",
+                                         "-1",
+                                         "-1");
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -276,19 +315,18 @@ public class ECS implements Watcher{
 
 
     private boolean runServerOnShell() {
-        Process proc;
-        // Zeqi note: invoke kvServer should pass in zkHostname, zkPort and serverName
-        // zkHostname "0.0.0.0" might not work across the LAN, needs the true ip
-        String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-        Runtime run = Runtime.getRuntime();
- 
-        try {
-          proc = run.exec(command);
-          return true;
-        } catch (IOException e) {
-          e.printStackTrace();
-          return false;
-        }
+    	return true;
+//        Process proc;
+//        String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
+//        Runtime run = Runtime.getRuntime();
+// 
+//        try {
+//          proc = run.exec(command);
+//          return true;
+//        } catch (IOException e) {
+//          e.printStackTrace();
+//          return false;
+//        }
     }
 
 
@@ -306,7 +344,7 @@ public class ECS implements Watcher{
 
     private boolean markServerUnavail(IECSNode escn) {
         // add escn to usedServer
-        this.usedServer.add(escn);
+        this.usedServers.add(escn);
         // remove escb from availServer
         this.availServers.remove(escn);
 
@@ -318,7 +356,7 @@ public class ECS implements Watcher{
         // add escn to usedServer
         this.availServers.add(escn);
         // remove escb from availServer
-        this.usedServer.remove(escn);
+        this.usedServers.remove(escn);
         
         return true;
     }
@@ -332,7 +370,7 @@ public class ECS implements Watcher{
 
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
-        BigInteger nameHash = hasher.hashString(escn.getNodeName());
+        String nameHash = hasher.hashString(escn.getNodeName());
         HashRingEntry ringEntry = new HashRingEntry(escn, nameHash);
 
         // Insert the ringEntry into the hash ring that preserves order
@@ -366,8 +404,8 @@ public class ECS implements Watcher{
         if (numRingEntry == 1) {
             ringEntry = this.hashRing.get(0);
             escn = (ECSNode)ringEntry.escn;
-            escn.leftHash = new BigInteger("0"); // Minimal Hash
-            escn.rightHash = new BigInteger("FFFFFF"); // Biggest Hash
+            escn.leftHash = "0"; // Minimal Hash
+            escn.rightHash = "FFFFFF"; // Biggest Hash
             status = updateZnode(ringEntry.escn);
         } else {
             while(i < numRingEntry) {

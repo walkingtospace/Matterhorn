@@ -8,16 +8,16 @@ public class ECSNode implements IECSNode {
     public String nodeName;
     public String nodeHost;
     public int nodePort;
-    public BigInteger nameHash;
-    public BigInteger leftHash;
-    public BigInteger rightHash;
+    public String nameHash;
+    public String leftHash;
+    public String rightHash;
 
     public ECSNode(String NodeName,
                    String NodeHost,
                    int NodePort,
-                   BigInteger nameHash,
-                   BigInteger LeftHash,
-                   BigInteger RightHash) {
+                   String nameHash,
+                   String LeftHash,
+                   String RightHash) {
         this.nodeName = NodeName;
         this.nodeHost = NodeHost;
         this.nodePort = NodePort;
@@ -59,8 +59,16 @@ public class ECSNode implements IECSNode {
     @Override
     public String[] getNodeHashRange() {
         String[] result = new String[2];
-        result[0] = this.leftHash.toString(16);
-        result[1] = this.rightHash.toString(16);
+        result[0] = this.leftHash;
+        result[1] = this.rightHash;
         return result;
+    }
+    
+    @Override
+    public String toString() {
+    	String res = "Name:" + this.nodeName + "|Host:" + this.nodeHost + "|Port" + Integer.toString(this.nodePort);
+    	res = res + "|nameHash" + this.nameHash + "|leftHash" + this.leftHash;
+    	res = res + "|rightHash" + this.rightHash;
+    	return res;
     }
 }

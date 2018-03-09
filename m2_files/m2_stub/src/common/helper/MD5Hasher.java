@@ -3,6 +3,7 @@ package common.helper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.math.BigInteger;
+import javax.xml.bind.DatatypeConverter;
 
 public class MD5Hasher {
 
@@ -12,10 +13,15 @@ public class MD5Hasher {
         md = MessageDigest.getInstance("MD5");
     }
 
-    public BigInteger hashString(String str) {
+    public String hashString(String str) {
         md.reset();
         md.update(str.getBytes());
-        BigInteger value = new BigInteger(1, md.digest());
+        String value = DatatypeConverter.printHexBinary(md.digest()).toUpperCase();
         return value;
+    }
+    
+    public int compareHash(String h1, String h2) {
+    	// Return -1 if less, 0 if equal, 1 if bigger
+    	return 0;
     }
 }
