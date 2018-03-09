@@ -28,23 +28,22 @@ public class ECSClient implements IECSClient {
     private BufferedReader stdin;
     private ECS ecs;
     private static final String PROMPT = "ECSClient> ";
-    private static final String CONFIGPATH = "./esc.config";
+    private static final String CONFIGPATH = "/nfs/ug/homes-5/l/liaoqi1/Desktop/Matterhorn/m2_files/m2_stub/ecs.config";
     private boolean stop = false;
 
     
     public void run() {
     	ecs = new ECS(CONFIGPATH);
-    	// Comment out for test
-//        while(!stop) {
-//            stdin = new BufferedReader(new InputStreamReader(System.in));
-//            System.out.print(PROMPT);
-//            try {
-//                String cmdLine = stdin.readLine();
-//                this.handleCommand(cmdLine);
-//            } catch (IOException e) {
-//                printError("CLI does not respond - Application terminated ");
-//            }
-//        }
+        while(!stop) {
+            stdin = new BufferedReader(new InputStreamReader(System.in));
+            System.out.print(PROMPT);
+            try {
+                String cmdLine = stdin.readLine();
+                this.handleCommand(cmdLine);
+            } catch (IOException e) {
+                printError("CLI does not respond - Application terminated ");
+            }
+        }
     }
 
 

@@ -11,6 +11,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Random;
 
 // Exception
@@ -34,20 +35,21 @@ public class ECS implements Watcher{
     private ArrayList<IECSNode> availServers;
     private ArrayList<IECSNode> usedServer;
     private ArrayList<HashRingEntry> hashRing;
-    private Map<String, IECSNode> escnMap;
+    private HashMap<String, IECSNode> escnMap;
     private MD5Hasher hasher;
     private MetaData metaData;
     private static final String zkHost = "0.0.0.0";
-    private static final int zkPort = 2083;
+    private static final int zkPort = 2181;
     private ZooKeeper zk;
 
     
     public ECS(String configPath) {
         // Init the class variable
-        availServers = new ArrayList<IECSNode>();
-        usedServer = new ArrayList<IECSNode>();
-        hashRing = new ArrayList<HashRingEntry>();
-        metaData = new MetaData();
+        this.availServers = new ArrayList<IECSNode>();
+        this.usedServer = new ArrayList<IECSNode>();
+        this.hashRing = new ArrayList<HashRingEntry>();
+        this.metaData = new MetaData();
+        this.escnMap = new HashMap<String, IECSNode>();
         try {
 			hasher = new MD5Hasher();
 		} catch (NoSuchAlgorithmException e) {
@@ -207,7 +209,10 @@ public class ECS implements Watcher{
 
     private boolean connectToZK() throws KeeperException, IOException{
         // Use Zookeeper
-    	this.zk = new ZooKeeper(this.zkHost, this.zkPort, this);
+    	String connection = this.zkHost + ":" + Integer.toString(this.zkPort);
+    	System.out.println(connection);
+    	this.zk = new ZooKeeper(connection, 3000, this);
+    	System.out.println("Hi");
         return false;
     }
 
@@ -232,7 +237,7 @@ public class ECS implements Watcher{
             // Always wrap FileReader in BufferedReader.
             BufferedReader bufferedReader = 
                 new BufferedReader(fileReader);
-
+            
             while((line = bufferedReader.readLine()) != null) {
                 String[] tokens = line.split("\\s+");
                 // Each line should look like this server1 127.0.0.1 50000
@@ -242,7 +247,12 @@ public class ECS implements Watcher{
                                          new BigInteger("-1"),
                                          new BigInteger("-1"),
                                          new BigInteger("-1"));
-                this.escnMap.put(tokens[0], sc);
+                System.out.println(tokens[0]);
+                try{
+                	this.escnMap.put(tokens[0], sc);
+                } catch(Exception e) {
+        			e.printStackTrace();
+                }
                 this.availServers.add(sc);
             }
 
