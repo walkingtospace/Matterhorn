@@ -1,8 +1,6 @@
 package ecs;
 
 // Java Import
-import java.math.BigInteger;
-
 public class ECSNode implements IECSNode {
 
     public String nodeName;

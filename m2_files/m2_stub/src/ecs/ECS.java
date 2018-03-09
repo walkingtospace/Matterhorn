@@ -153,6 +153,9 @@ public class ECS implements Watcher{
     	}
     	
     	this.createZnode(n0, "FIFO", 1024);
+    	
+    	((ECSNode)n0).cacheStrategy = "GG";
+    	this.updateZnode(n0);
     }
 
     public boolean start() {
@@ -500,7 +503,6 @@ public class ECS implements Watcher{
             escn = (ECSNode)ringEntry.escn;
             escn.leftHash = "0"; // Minimal Hash
             escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
-            status = updateZnode(ringEntry.escn);
         } else {
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
@@ -522,7 +524,29 @@ public class ECS implements Watcher{
 
     private boolean updateZnode(IECSNode escn) {
         // update znode
-    	return false;
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", "STOP");
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
     }
 
     private boolean startServer(IECSNode escn) {
