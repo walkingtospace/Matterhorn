@@ -11,4 +11,13 @@ public class HashRingEntry {
         this.escn = escn;
         this.hashValue = hashValue;
     }
+    
+    @Override
+    public String toString() {
+    	String res;
+    	res = "the node is:" + this.escn;
+    	res = res + "\n" + "HashValue:" + this.hashValue;
+    	return res;
+    	
+    }
 }

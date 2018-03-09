@@ -23,11 +23,18 @@ import java.security.NoSuchAlgorithmException;
 import common.helper.MD5Hasher;
 import common.message.MetaData;
 
+// JSON
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 // ZooKeeper Import
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.ZooDefs;
 
 
 public class ECS implements Watcher{
@@ -77,41 +84,75 @@ public class ECS implements Watcher{
     // Purely testing purpose. Should remove after everything is done
     public void test() {
     	// print available servers
-    	for (IECSNode escn: this.availServers) {
-    		System.out.println(escn);
-    	}
-    	System.out.println("------test random pick---");
-    	System.out.println(this.randomlyPickOneAvailServer());
-    	System.out.println(this.randomlyPickOneAvailServer());
-    	System.out.println(this.randomlyPickOneAvailServer());
-    	System.out.println(this.randomlyPickOneAvailServer());
-    	System.out.println("-----test mark avail----");
-    	this.markServerUnavail(this.availServers.get(0));
-    	this.markServerUnavail(this.availServers.get(0));
-    	this.markServerUnavail(this.availServers.get(1));
-    	for (IECSNode escn: this.availServers) {
-    		System.out.println(escn);
-    	}
-    	System.out.println("--");
-    	for (IECSNode escn: this.usedServers) {
-    		System.out.println(escn);
-    	}
-    	System.out.println("+++++++++++");
-    	this.markServeravail(this.usedServers.get(0));
-    	this.markServeravail(this.usedServers.get(0));
-    	this.markServeravail(this.usedServers.get(0));
-    	for (IECSNode escn: this.availServers) {
-    		System.out.println(escn);
-    	}
-    	System.out.println("--");
-    	for (IECSNode escn: this.usedServers) {
-    		System.out.println(escn);
-    	}
+//    	for (IECSNode escn: this.availServers) {
+//    		System.out.println(escn);
+//    	}
+//    	System.out.println("------test random pick---");
+//    	System.out.println(this.randomlyPickOneAvailServer());
+//    	System.out.println(this.randomlyPickOneAvailServer());
+//    	System.out.println(this.randomlyPickOneAvailServer());
+//    	System.out.println(this.randomlyPickOneAvailServer());
+//    	System.out.println("-----test mark avail----");
+//    	this.markServerUnavail(this.availServers.get(0));
+//    	this.markServerUnavail(this.availServers.get(0));
+//    	this.markServerUnavail(this.availServers.get(1));
+//    	for (IECSNode escn: this.availServers) {
+//    		System.out.println(escn);
+//    	}
+//    	System.out.println("--");
+//    	for (IECSNode escn: this.usedServers) {
+//    		System.out.println(escn);
+//    	}
+//    	System.out.println("+++++++++++");
+//    	this.markServeravail(this.usedServers.get(0));
+//    	this.markServeravail(this.usedServers.get(0));
+//    	this.markServeravail(this.usedServers.get(0));
+//    	for (IECSNode escn: this.availServers) {
+//    		System.out.println(escn);
+//    	}
+//    	System.out.println("--");
+//    	for (IECSNode escn: this.usedServers) {
+//    		System.out.println(escn);
+//    	}
     	
     	// Test consistent hashing
-    	System.out.println("--------- test consistent hashing -----------");
-    	this.addNode("FIFO", 1024);
+//    	System.out.println("--------- test consistent hashing -----------");
+//    	IECSNode n0 = this.addNode("FIFO", 1024);
+//    	System.out.println(n0);
+//
+//    	IECSNode n1 = this.addNode("FIFO", 1024);
+//    	System.out.println(n1);
+//
+//    	IECSNode n2 = this.addNode("FIFO", 1024);
+//    	System.out.println(n2);
+//
+//    	IECSNode n3 = this.addNode("FIFO", 1024);
+//    	System.out.println(n3);
+//    	
+//    	System.out.println("Hash Ring:");
+//    	for (HashRingEntry r: this.hashRing) {
+//    		System.out.println(r);
+//    	}
     	
+    	// Test removing nodes
+//    	System.out.println("--------- test removing nodes ----------");
+//    	ArrayList<String> nodeNames = new ArrayList<String>();
+//    	nodeNames.add(n0.getNodeName());
+//    	this.removeNodes(nodeNames);
+//    	System.out.println("Hash Ring:");
+//    	for (HashRingEntry r: this.hashRing) {
+//    		System.out.println(r);
+//    	}
+
+    	// Test Create Znode
+    	IECSNode n0 = this.addNode("FIFO", 1024);
+    	System.out.println(n0);
+    	System.out.println("Hash Ring:");
+    	for (HashRingEntry r: this.hashRing) {
+    		System.out.println(r);
+    	}
+    	
+    	this.createZnode(n0, "FIFO", 1024);
     }
 
     public boolean start() {
@@ -174,9 +215,6 @@ public class ECS implements Watcher{
 
         status = this.markServerUnavail(availServer);
 
-        // Create the Znode in ZooKeeper
-        status = this.createZnode(availServer, cacheStrategy, cacheSize);
-
         // Add the ECSNode to the hashring
         status = this.addECSNodeToHashRing(availServer);
 
@@ -230,9 +268,20 @@ public class ECS implements Watcher{
     }
 
 
+    public boolean removeNode(IECSNode ecsn) {
+    	this.removeESCNodeFromHashRing(ecsn);
+    	this.recalculateHashRange();
+    	return true;
+    }
+ 
     public boolean removeNodes(Collection<String> nodeNames) {
-        // TODO
-        return false;
+        // Remove nodes
+    	IECSNode escn;
+    	for (String nodeName: nodeNames) {
+    		escn = getNodeByKey(nodeName);
+    		this.removeNode(escn);
+    	}
+        return true;
     }
 
 
@@ -246,6 +295,7 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
+    	System.out.println("Trigger Event from ZK");
         return;
     }
 
@@ -253,11 +303,11 @@ public class ECS implements Watcher{
         // Use Zookeeper
     	String connection = this.zkHost + ":" + Integer.toString(this.zkPort);
     	this.zk = new ZooKeeper(connection, 3000, this);
-        return false;
+        return true;
     }
 
 
-    private BigInteger hash_server(String ip, int port) {
+    private String hash_server(String ip, int port) {
         String portString = String.valueOf(port);
         String hash_input = ip + ":" + port;
 
@@ -267,7 +317,7 @@ public class ECS implements Watcher{
 
     private boolean parseConfig(String configPath) {
         // This will reference one line at a time
-        String line = null;
+        String line;
 
         try {
             // FileReader reads text files in the default encoding.
@@ -286,7 +336,9 @@ public class ECS implements Watcher{
                                          Integer.parseInt(tokens[2]),
                                          "-1",
                                          "-1",
-                                         "-1");
+                                         "-1",
+                                         "",
+                                         -1);
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -363,14 +415,42 @@ public class ECS implements Watcher{
 
 
     private boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
-        // use Zookeeper
-    	return false;
+        // Set attributes
+    	((ECSNode)escn).cacheStrategy = cacheStrategy;
+    	((ECSNode)escn).cacheSize = cacheSize;
+    	
+    	// Create Znode
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", cacheStrategy);
+        jsonMessage.put("CacheSize", cacheSize);
+        jsonMessage.put("State", "STOP");
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+				      CreateMode.PERSISTENT);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
     }
 
 
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
         String nameHash = hasher.hashString(escn.getNodeName());
+        ((ECSNode)escn).nameHash = nameHash;
         HashRingEntry ringEntry = new HashRingEntry(escn, nameHash);
 
         // Insert the ringEntry into the hash ring that preserves order
@@ -391,6 +471,20 @@ public class ECS implements Watcher{
         // recalculate the hash range
         return true;
     }
+    
+    private boolean removeESCNodeFromHashRing(IECSNode escn) {
+    	int i = 0;
+    	while(i < this.hashRing.size()) {
+    		HashRingEntry r = hashRing.get(i);
+    		if (r.escn.getNodeName() == escn.getNodeName()) {
+    			// found the ring entry
+    			this.hashRing.remove(i);
+    			return true;
+    		}
+    		i++;
+    	}
+    	return false;
+    }
 
     private boolean recalculateHashRange() {
         // find all escn entry in the Hash Ring
@@ -399,17 +493,17 @@ public class ECS implements Watcher{
         HashRingEntry ringEntry;
         boolean status = true;
         ECSNode escn;
-
+        System.out.println("Recalculating Hash Ring");
         // if there's only one entry
         if (numRingEntry == 1) {
             ringEntry = this.hashRing.get(0);
             escn = (ECSNode)ringEntry.escn;
             escn.leftHash = "0"; // Minimal Hash
-            escn.rightHash = "FFFFFF"; // Biggest Hash
+            escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
             status = updateZnode(ringEntry.escn);
         } else {
             while(i < numRingEntry) {
-                ringEntry = this.hashRing.get(0);
+                ringEntry = this.hashRing.get(i);
                 escn = (ECSNode)ringEntry.escn;
                 if(i == 0) {
                 	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
