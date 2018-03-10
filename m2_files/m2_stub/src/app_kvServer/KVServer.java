@@ -106,7 +106,7 @@ public class KVServer implements IKVServer, Watcher {
         int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
-        MetaDataEntry metaDataEntry = new MetaDataEntry(serverHost, serverPort, leftHash, rightHash);
+        MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
         
         this.initKVServer(metaDataEntry, cacheSize, strategy);
     }
