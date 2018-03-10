@@ -15,6 +15,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 import logger.LogSetup;
@@ -63,7 +64,7 @@ public class KVServer implements IKVServer, Watcher {
     private KVCache cache;
     
     private String dbPath = "./db/";
-    private String zkPath = "/root/";
+    private String zkPath = "/";
     
     private MetaDataEntry metaDataEntry;
     private String name;
@@ -71,7 +72,7 @@ public class KVServer implements IKVServer, Watcher {
     private int zkPort;
     private boolean writeLock;
     
-    private String state;
+    private volatile String state;
     
     private ZooKeeper zk;
 
@@ -84,8 +85,8 @@ public class KVServer implements IKVServer, Watcher {
         this.zkPort = zkPort;
         this.dbPath += name + "/";
         
-//        this.zkPath += name + "/";
-        zk = new ZooKeeper(zkHostname, zkPort, this);
+        String connection = zkHostname + ":" + Integer.toString(zkPort) + zkPath + name;
+        zk = new ZooKeeper(connection, 3000, this);
     	
         byte[] raw_data = zk.getData(zkPath + name, this, null);
         String data = new String(raw_data);
@@ -99,7 +100,7 @@ public class KVServer implements IKVServer, Watcher {
                     "Unable to parse incoming bytes to json. \n", e);
         }
         
-       
+        state = (String) jsonMessage.get("STATE");
         int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
         String strategy = (String)jsonMessage.get("CacheStrategy");
         String serverHost = (String)jsonMessage.get("NodeHost");
@@ -112,7 +113,8 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     
-    public void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
+    
+    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
     	
     	this.metaDataEntry = metaDataEntry;
     	this.cacheSize = cacheSize;
@@ -167,40 +169,33 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public int getPort(){
-        /* KenNote: Just copied over from M1 */
-        return metaDataEntry.serverPort;
+        return this.metaDataEntry.serverPort;
     }
 
 
     @Override
     public String getHostname(){
-        /* KenNote: Just copied over from M1 */
-        try {
-            return InetAddress.getLocalHost().toString();
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return this.metaDataEntry.serverHost;
     }
 
 
     @Override
     public CacheStrategy getCacheStrategy(){
-        /* KenNote: Just copied over from M1 */
-        return strategy;
+        return this.strategy;
     }
 
 
     @Override
     public int getCacheSize(){
-        /* KenNote: Just copied over from M1 */
-        return cacheSize;
+        return this.cacheSize;
     }
 
-
+    public synchronized String getState() {
+    	return this.state;
+    }
+    
     @Override
-    public boolean inStorage(String key){
-        /* KenNote: Just copied over from M1 */
+    public synchronized boolean inStorage(String key){
         boolean result = false;
         key += ".kv";
         File kvFile = new File(dbPath + key);
@@ -223,8 +218,7 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized String getKV(String key) throws Exception{
-        /* KenNote: Just copied over from M1 */
-        String value = null;
+    	String value = null;
         if (cache != null) {
             value = cache.get(key);
             if (value != null) {
@@ -249,6 +243,18 @@ public class KVServer implements IKVServer, Watcher {
         return value;
     }
 
+    public boolean isKeyInRange(String key) throws NoSuchAlgorithmException {
+    	MD5Hasher hasher = new MD5Hasher();
+    	String hashedKey = hasher.hashString(key);
+    	String leftHash = metaDataEntry.leftHash;
+    	String rightHash = metaDataEntry.rightHash;
+    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1) 
+    			|| (hasher.compareHash(hashedKey, leftHash) == -1 && hasher.compareHash(hashedKey, rightHash) == -1)
+    			|| (hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == 1)) {
+    		return true;
+    	}
+    	return false;
+    }
 
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
@@ -370,30 +376,34 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public void start() {
-        // New: ECS related
+    public synchronized void start() {
+        this.state = "START";
     }
 
 
     @Override
     public void stop() {
-        // New: ECS related
+    	this.state = "STOP";
     }
 
 
     @Override
-    public void lockWrite() {
+    public synchronized void lockWrite() {
     	writeLock = true;
     }
 
 
     @Override
-    public void unlockWrite() {
+    public synchronized void unlockWrite() {
     	writeLock = false;
     }
     
+    public synchronized boolean isLocked() {
+    	return writeLock;
+    }
+    
     @Override
-    public void update(MetaDataEntry metaDataEntry) {
+    public synchronized void update(MetaDataEntry metaDataEntry) {
     	this.metaDataEntry = metaDataEntry;
     }
 
@@ -415,7 +425,7 @@ public class KVServer implements IKVServer, Watcher {
                     "Unable to parse incoming bytes to json. \n", e);
         }
         String targetServerHost = (String) jsonMessage.get("NodeHost");
-        int targetServerPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+        int targetServerPort = Integer.parseInt((String)jsonMessage.get("l"));
     	
 //    	List<String> list = zk.getChildren(zkPath, true);
     	
@@ -508,32 +518,70 @@ public class KVServer implements IKVServer, Watcher {
 
 	@Override
 	public void process(WatchedEvent event) {
+		byte[] raw_data;
+		try {
+			raw_data = zk.getData(zkPath, this, null);
+		} catch (KeeperException | InterruptedException e) {
+			e.printStackTrace();
+			return;
+		}
+		String data = new String (raw_data);
+		
+		JSONObject jsonMessage = null;
+        JSONParser parser = new JSONParser();
+        try {
+            jsonMessage = (JSONObject) parser.parse(data);
+        } catch (ParseException e) {
+            logger.error("Error! " +
+                    "Unable to parse incoming bytes to json. \n", e);
+        }
+        
 		EventType type = event.getType();
 		switch (type) {
-		case NodeDataChanged:
-			break;
-		case NodeCreated:
-			break;
-		case NodeDeleted:
-			break;
+			case NodeDataChanged:
+				if (event.getPath().equals(this.zkPath + this.name)) {
+					String targetName = (String) jsonMessage.get("TargetName");
+					String leftHash = (String) jsonMessage.get("LeftHash");
+					String rightHash = (String) jsonMessage.get("RighttHash");
+					MD5Hasher hasher;
+					try {
+						hasher = new MD5Hasher();
+					} catch (NoSuchAlgorithmException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						return;
+					}
+					if (targetName.equals("NULL")) {
+						String[] hashRange = {leftHash, rightHash};
+						boolean result;
+						try {
+							this.lockWrite();
+							result = this.moveData(hashRange, targetName);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							return;
+						}
+						if (result) {
+							MetaDataEntry metaDataEntry = new MetaDataEntry(this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
+							this.update(metaDataEntry);
+							this.unlockWrite();
+						}
+					}
+//					if (hasher.compareHash(leftHash, metaDataEntry.leftHash) != 0 || hasher.compareHash(rightHash, metaDataEntry.rightHash) != 0) {
+//						
+//					}
+				}
+				break;
+//			case NodeCreated:
+//				this.start();
+//				break;
+			case NodeDeleted:
+				this.close();
+				break;	
+			default:
+                break;
 		}
-//		byte[] data;
-//		try {
-//			data = zk.getData(zkPath, this, null);
-//		} catch (KeeperException | InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//		// decode zNode data
-//        //String string = new String(data);
-//        int cacheSize;
-//        String strategy;
-//        String serverHost;
-//        int serverPort;
-//        BigInteger leftHash;
-//        BigInteger rightHash;
-//        MetaDataEntry metaDataEntry = new MetaDataEntry(serverHost, serverPort, leftHash, rightHash);
 		
 	}
 }
