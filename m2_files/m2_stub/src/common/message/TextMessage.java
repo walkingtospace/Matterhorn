@@ -40,7 +40,15 @@ public class TextMessage implements Serializable, KVMessage{
 //      StringWriter out = new StringWriter();
 //      jsonMessage.writeJSONString(out);
     }
-
+    
+    public TextMessage(StatusType status, String key, String value) {
+        jsonMessage = new JSONObject();
+        this.jsonMessage.put("status", status.toString());
+        this.jsonMessage.put("key", key);
+        this.jsonMessage.put("value", value);
+        this.msg = jsonMessage.toString();
+        isClient = false;
+    }
 
     public TextMessage(StatusType status, String key, String value, List<MetaDataEntry> metaData) {
         jsonMessage = new JSONObject();
@@ -166,7 +174,7 @@ public class TextMessage implements Serializable, KVMessage{
     
     @SuppressWarnings("unchecked")
 	public List<MetaDataEntry> getMetaData() {
-    	if (jsonMessage == null)
+    	if (jsonMessage == null || jsonMessage.get("metadata") == null)
             return null;
     	List<MetaDataEntry> metaDataList = new ArrayList<MetaDataEntry>();
     	JSONArray metaDataArray = (JSONArray) jsonMessage.get("metadata");
