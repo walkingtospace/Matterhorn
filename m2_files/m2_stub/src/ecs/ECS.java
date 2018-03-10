@@ -83,15 +83,13 @@ public class ECS implements Watcher{
     public void test() {
     	// Test Create Znode
     	IECSNode n0 = this.addNode("FIFO", 1024);
+    	IECSNode n1 = this.addNode("FIFO", 1024);
     	System.out.println(n0);
+    	System.out.println(n1);
     	System.out.println("Hash Ring:");
     	for (HashRingEntry r: this.hashRing) {
     		System.out.println(r);
     	}
-    	
-    	
-    	this.updateZnodeHash(n0, "-2", "-3");
-    	this.startServer(n0);
     }
 
     public boolean start() {
@@ -484,6 +482,38 @@ public class ECS implements Watcher{
     	return true;
     }
 
+    private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
+        // update znode
+    	System.out.println("WTFFFFFF " + escn.getNodeName() + " " + target);
+    	if(((ECSNode)escn).target == target) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
         String nameHash = hasher.hashString(escn.getNodeName());
@@ -494,15 +524,19 @@ public class ECS implements Watcher{
         if (this.hashRing.size() == 0) {
             this.hashRing.add(ringEntry);
         } else {
-            // Find the index of the position
+            // Find the index of the position that is less 
             int i = 0;
             while(i < this.hashRing.size()) {
-                if (this.hashRing.get(i).hashValue.compareTo(nameHash) == -1) {
-                    break;
+                if (hasher.compareHash(this.hashRing.get(i).hashValue, nameHash) == 1) {
+                    // found a bigger hash value
+                	break;
                 }
                 i++;
             }
             this.hashRing.add(i, ringEntry);
+            int t = (i + 1)%(this.hashRing.size());
+            this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
+            ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
         }
 
         // recalculate the hash range
