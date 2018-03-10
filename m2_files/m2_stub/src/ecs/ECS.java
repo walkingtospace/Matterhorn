@@ -83,15 +83,13 @@ public class ECS implements Watcher{
     public void test() {
     	// Test Create Znode
     	IECSNode n0 = this.addNode("FIFO", 1024);
+    	IECSNode n1 = this.addNode("FIFO", 1024);
     	System.out.println(n0);
+    	System.out.println(n1);
     	System.out.println("Hash Ring:");
     	for (HashRingEntry r: this.hashRing) {
     		System.out.println(r);
     	}
-    	
-    	
-    	this.updateZnodeHash(n0, "-2", "-3");
-    	this.startServer(n0);
     }
 
     public boolean start() {
@@ -486,6 +484,7 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
         // update znode
+    	System.out.println("WTFFFFFF " + escn.getNodeName() + " " + target);
     	if(((ECSNode)escn).target == target) {
     		return true;
     	}
@@ -537,6 +536,7 @@ public class ECS implements Watcher{
             this.hashRing.add(i, ringEntry);
             int t = (i + 1)%(this.hashRing.size());
             this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
+            ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
         }
 
         // recalculate the hash range
