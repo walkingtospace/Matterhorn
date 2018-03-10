@@ -28,7 +28,9 @@ public class ECSClient implements IECSClient {
     private BufferedReader stdin;
     private ECS ecs;
     private static final String PROMPT = "ECSClient> ";
-    private static final String CONFIGPATH = "/nfs/ug/homes-5/l/lizeqi/ECE419/Matterhorn/m2_files/m2_stub/src/app_kvECS/ecs.config";
+
+    private static final String CONFIGPATH = "ecs.config";
+
     private boolean stop = false;
 
     
