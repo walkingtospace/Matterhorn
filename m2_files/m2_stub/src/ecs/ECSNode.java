@@ -11,6 +11,8 @@ public class ECSNode implements IECSNode {
     public String rightHash;
     public String cacheStrategy;
     public int cacheSize;
+    public String state;
+    public String target;
 
     public ECSNode(String NodeName,
                    String NodeHost,
@@ -19,7 +21,9 @@ public class ECSNode implements IECSNode {
                    String LeftHash,
                    String RightHash,
                    String cacheStrategy,
-                   int cacheSize) {
+                   int cacheSize,
+                   String state,
+                   String target) {
         this.nodeName = NodeName;
         this.nodeHost = NodeHost;
         this.nodePort = NodePort;
@@ -28,6 +32,8 @@ public class ECSNode implements IECSNode {
         this.nameHash = nameHash;
         this.cacheStrategy = cacheStrategy;
         this.cacheSize = cacheSize;
+        this.state = state;
+        this.target = target;
     }
 
     /**
@@ -73,6 +79,7 @@ public class ECSNode implements IECSNode {
     	String res = "Name:" + this.nodeName + "|Host:" + this.nodeHost + "|Port" + Integer.toString(this.nodePort);
     	res = res + "|nameHash:" + this.nameHash + "|leftHash:" + this.leftHash;
     	res = res + "|rightHash:" + this.rightHash + "|cacheStrategy:" + this.cacheStrategy + "|cacheSize:" + this.cacheSize;
+    	res = res + "|state:" + this.state + "|target:" + this.target;
     	return res;
     }
 }

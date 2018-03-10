@@ -70,10 +70,8 @@ public class ECS implements Watcher{
         try {
 			status = this.connectToZK();
 		} catch (KeeperException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         
@@ -83,67 +81,6 @@ public class ECS implements Watcher{
 
     // Purely testing purpose. Should remove after everything is done
     public void test() {
-    	// print available servers
-//    	for (IECSNode escn: this.availServers) {
-//    		System.out.println(escn);
-//    	}
-//    	System.out.println("------test random pick---");
-//    	System.out.println(this.randomlyPickOneAvailServer());
-//    	System.out.println(this.randomlyPickOneAvailServer());
-//    	System.out.println(this.randomlyPickOneAvailServer());
-//    	System.out.println(this.randomlyPickOneAvailServer());
-//    	System.out.println("-----test mark avail----");
-//    	this.markServerUnavail(this.availServers.get(0));
-//    	this.markServerUnavail(this.availServers.get(0));
-//    	this.markServerUnavail(this.availServers.get(1));
-//    	for (IECSNode escn: this.availServers) {
-//    		System.out.println(escn);
-//    	}
-//    	System.out.println("--");
-//    	for (IECSNode escn: this.usedServers) {
-//    		System.out.println(escn);
-//    	}
-//    	System.out.println("+++++++++++");
-//    	this.markServeravail(this.usedServers.get(0));
-//    	this.markServeravail(this.usedServers.get(0));
-//    	this.markServeravail(this.usedServers.get(0));
-//    	for (IECSNode escn: this.availServers) {
-//    		System.out.println(escn);
-//    	}
-//    	System.out.println("--");
-//    	for (IECSNode escn: this.usedServers) {
-//    		System.out.println(escn);
-//    	}
-    	
-    	// Test consistent hashing
-//    	System.out.println("--------- test consistent hashing -----------");
-//    	IECSNode n0 = this.addNode("FIFO", 1024);
-//    	System.out.println(n0);
-//
-//    	IECSNode n1 = this.addNode("FIFO", 1024);
-//    	System.out.println(n1);
-//
-//    	IECSNode n2 = this.addNode("FIFO", 1024);
-//    	System.out.println(n2);
-//
-//    	IECSNode n3 = this.addNode("FIFO", 1024);
-//    	System.out.println(n3);
-//    	
-//    	System.out.println("Hash Ring:");
-//    	for (HashRingEntry r: this.hashRing) {
-//    		System.out.println(r);
-//    	}
-    	
-    	// Test removing nodes
-//    	System.out.println("--------- test removing nodes ----------");
-//    	ArrayList<String> nodeNames = new ArrayList<String>();
-//    	nodeNames.add(n0.getNodeName());
-//    	this.removeNodes(nodeNames);
-//    	System.out.println("Hash Ring:");
-//    	for (HashRingEntry r: this.hashRing) {
-//    		System.out.println(r);
-//    	}
-
     	// Test Create Znode
     	IECSNode n0 = this.addNode("FIFO", 1024);
     	System.out.println(n0);
@@ -152,10 +89,9 @@ public class ECS implements Watcher{
     		System.out.println(r);
     	}
     	
-    	this.createZnode(n0, "FIFO", 1024);
     	
-    	((ECSNode)n0).cacheStrategy = "GG";
-    	this.updateZnode(n0);
+    	this.updateZnodeHash(n0, "-2", "-3");
+    	this.startServer(n0);
     }
 
     public boolean start() {
@@ -207,7 +143,25 @@ public class ECS implements Watcher{
 
 
     public IECSNode addNode(String cacheStrategy, int cacheSize) {
+    	Collection<IECSNode> res = this.addNodes(1, cacheStrategy, cacheSize);
+        return ((ArrayList<IECSNode>)res).get(0);
+    }
+
+
+    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
+    	Collection<IECSNode> res = this.setupNodes(count, cacheStrategy, cacheSize);
+ 
+    	// Start SSH for res
+    	this.sshStartServer(res);
+ 
+        return res;
+    }
+
+    public IECSNode setupNode(String cacheStrategy, int cacheSize) {
+    	// Create a new KVServer with the specified cache size and replacement strategy
+    	// and add it to the storage service at an arbitrary position.
         boolean status;
+        
         // Randomly pick one available server from a list of available servers
         IECSNode availServer = this.randomlyPickOneAvailServer();
         
@@ -218,26 +172,22 @@ public class ECS implements Watcher{
 
         status = this.markServerUnavail(availServer);
 
+        // Create Znode on ZK
+        status = this.createZnode(availServer, cacheStrategy, cacheSize);
+
         // Add the ECSNode to the hashring
         status = this.addECSNodeToHashRing(availServer);
 
         // Configure the hash range of the node
         status = this.recalculateHashRange();
 
-        // Trigger the start of server
-        status = this.runServerOnShell();
-        if (status == false) {
-            System.out.println("Failed to start server on shell");
-            return null;
-        }
-
         return availServer;
     }
-
-
-    public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
+    
+    public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
+        // Create IECSNodes for the servers, but do not issue the ssh call to start the processes. Should be invoked by addNodes
         ArrayList<IECSNode> res = new ArrayList<IECSNode>();
- 
+        
         if (availServers.size() < count) {
             System.out.println("Not enough free servers");
             return res;
@@ -246,7 +196,7 @@ public class ECS implements Watcher{
         int i = count;
         IECSNode new_node;
         while(i > 0) {
-            new_node = addNode(cacheStrategy, cacheSize);
+            new_node = setupNode(cacheStrategy, cacheSize);
             if (new_node != null) {
                 res.add(new_node);
             } else {
@@ -256,12 +206,6 @@ public class ECS implements Watcher{
         }
 
         return res;
-    }
-
-
-    public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
-        // TODO
-        return null;
     }
 
 
@@ -309,15 +253,6 @@ public class ECS implements Watcher{
         return true;
     }
 
-
-    private String hash_server(String ip, int port) {
-        String portString = String.valueOf(port);
-        String hash_input = ip + ":" + port;
-
-        return hasher.hashString(hash_input);
-    }
-
-
     private boolean parseConfig(String configPath) {
         // This will reference one line at a time
         String line;
@@ -341,7 +276,9 @@ public class ECS implements Watcher{
                                          "-1",
                                          "-1",
                                          "",
-                                         -1);
+                                         -1,
+                                         "STOP",
+                                         "null");
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -369,19 +306,22 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean runServerOnShell() {
+    private boolean sshStartServer(Collection<IECSNode> res) {
+    	for (IECSNode escn: res) {
+        	System.out.println("Running SSH to start" + escn.getNodeName());
+//            Process proc;
+//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
+//            Runtime run = Runtime.getRuntime();
+    // 
+//            try {
+//              proc = run.exec(command);
+//              return true;
+//            } catch (IOException e) {
+//              e.printStackTrace();
+//              return false;
+//            }	
+    	}
     	return true;
-//        Process proc;
-//        String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-//        Runtime run = Runtime.getRuntime();
-// 
-//        try {
-//          proc = run.exec(command);
-//          return true;
-//        } catch (IOException e) {
-//          e.printStackTrace();
-//          return false;
-//        }
     }
 
 
@@ -430,10 +370,11 @@ public class ECS implements Watcher{
         jsonMessage.put("NodePort", escn.getNodePort());
         jsonMessage.put("CacheStrategy", cacheStrategy);
         jsonMessage.put("CacheSize", cacheSize);
-        jsonMessage.put("State", "STOP");
+        jsonMessage.put("State", ((ECSNode)escn).state);
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -449,6 +390,130 @@ public class ECS implements Watcher{
     	return true;
     }
 
+    private boolean updateZnodeState(IECSNode escn, String state) {
+        // update znode
+    	if (((ECSNode)escn).state == state) {
+    		// Don't reupdate
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    private boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
+        // update znode
+    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", leftHash);
+        jsonMessage.put("RightHash", rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    private boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
+        // update znode
+    	if(((ECSNode)escn).nameHash == nodeHash) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", nodeHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
+        // update znode
+    	if(((ECSNode)escn).target == target) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
 
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
@@ -460,15 +525,18 @@ public class ECS implements Watcher{
         if (this.hashRing.size() == 0) {
             this.hashRing.add(ringEntry);
         } else {
-            // Find the index of the position
+            // Find the index of the position that is less 
             int i = 0;
             while(i < this.hashRing.size()) {
-                if (this.hashRing.get(i).hashValue.compareTo(nameHash) == -1) {
-                    break;
+                if (hasher.compareHash(this.hashRing.get(i).hashValue, nameHash) == 1) {
+                    // found a bigger hash value
+                	break;
                 }
                 i++;
             }
             this.hashRing.add(i, ringEntry);
+            int t = (i + 1)%(this.hashRing.size());
+            this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
         }
 
         // recalculate the hash range
@@ -515,49 +583,24 @@ public class ECS implements Watcher{
                 	escn.leftHash = hashRing.get(i - 1).hashValue;
                     escn.rightHash = hashRing.get(i).hashValue;
                 }
-                status = updateZnode(ringEntry.escn);
+                status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+                status = this.updateZnodeNodeHash(escn, escn.nameHash);
                 i++;
             }
         }
         return status;
     }
 
-    private boolean updateZnode(IECSNode escn) {
-        // update znode
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", "STOP");
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        byte[] zkData = jsonMessage.toString().getBytes();
-        try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
-		} catch (KeeperException e) {
-			e.printStackTrace();
-			return false;
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			return false;
-		}
-        
-    	return true;
-    }
 
     private boolean startServer(IECSNode escn) {
-        // Change the state of node in Znode to start
-    	return false;
+    	return this.updateZnodeState(escn, "START");
     }
 
 
     private boolean stopServer(IECSNode escn) {
         // Change the state of node in Znode to stop
-    	return false;
+    	return this.updateZnodeState(escn, "STOP");
+
     }
 
 
