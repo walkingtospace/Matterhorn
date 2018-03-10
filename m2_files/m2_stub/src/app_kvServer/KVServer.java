@@ -13,8 +13,10 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
-import org.apache.log4j.Level;
+import logger.LogSetup;
+
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -32,8 +34,6 @@ import cache.KVLRUCache;
 import client.KVStore;
 import common.helper.MD5Hasher;
 import common.message.MetaDataEntry;
-import ecs.ECSNode;
-import logger.LogSetup;
 
 public class KVServer implements IKVServer, Watcher {
 
@@ -90,15 +90,21 @@ public class KVServer implements IKVServer, Watcher {
         state = (String) jsonMessage.get("State");
         int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
         String strategy = (String)jsonMessage.get("CacheStrategy");
-        String serverHost = (String)jsonMessage.get("NodeHost");
+        
+
+        MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
+        
+        this.initKVServer(metaDataEntry, cacheSize, strategy);
+    }
+    
+    private MetaDataEntry fillUpMetaDataEntry(JSONObject jsonMessage) {
+    	String serverHost = (String)jsonMessage.get("NodeHost");
         int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
 
-
         MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
-        
-        this.initKVServer(metaDataEntry, cacheSize, strategy);
+        return metaDataEntry;
     }
     
     private JSONObject decodeJsonStr(String data) {
@@ -163,12 +169,9 @@ public class KVServer implements IKVServer, Watcher {
             
             JSONObject jsonMessage = decodeJsonStr(data);
             
-            String serverHost = (String)jsonMessage.get("NodeHost");
-            int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
-            String leftHash = (String)jsonMessage.get("LeftHash");
-            String rightHash = (String)jsonMessage.get("RightHash");
             
-            MetaDataEntry nodeMetaDataEntry = new MetaDataEntry(serverHost, serverHost, serverPort, leftHash, rightHash);
+            
+            MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
             metaData.add(nodeMetaDataEntry);
     	}
     	return metaData;
@@ -177,17 +180,16 @@ public class KVServer implements IKVServer, Watcher {
     // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
 		try {
-//			if (args.length != 4) {
-//				System.out.println("Wrong number of arguments passed to server");
-//			}
-//			new LogSetup("logs/server.log", Level.ALL);
-//			String zkHostname = args[0];
-//			int zkPort = Integer.parseInt(args[1]);
-//			String name = args[2];
-			String name = "server1";
-			String zkHostname = "0.0.0.0";
-			int zKPort = 3100;
-			KVServer server = new KVServer(name, zkHostname, zKPort);
+			if (args.length != 4) {
+				System.out.println("Wrong number of arguments passed to server");
+			}
+			String zkHostname = args[0];
+			int zkPort = Integer.parseInt(args[1]);
+			String name = args[2];
+//			String name = "server1";
+//			String zkHostname = "0.0.0.0";
+//			int zkPort = 3100;
+			KVServer server = new KVServer(name, zkHostname, zkPort);
 			
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
@@ -589,12 +591,11 @@ public class KVServer implements IKVServer, Watcher {
 			case NodeDataChanged:
 //				if (event.getPath().equals(this.zkPath + this.name)) {
 				String targetName = (String) jsonMessage.get("Target");
-				String leftHash = (String) jsonMessage.get("LeftHash");
-				String rightHash = (String) jsonMessage.get("RighttHash");
-				MetaDataEntry metaDataEntry = new MetaDataEntry(this.name, this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
+				
+				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
 				this.update(metaDataEntry);
 				if (!targetName.equals("NULL")) {
-					String[] hashRange = {leftHash, rightHash};
+					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
 					boolean result;
 					try {
 						this.lockWrite();
