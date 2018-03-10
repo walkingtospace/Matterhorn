@@ -21,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 
 // Internal Import
 import common.helper.MD5Hasher;
-import common.message.MetaData;
 
 // JSON
 import org.json.simple.JSONObject;
@@ -44,7 +43,6 @@ public class ECS implements Watcher{
     private ArrayList<HashRingEntry> hashRing;
     private HashMap<String, IECSNode> escnMap;
     private MD5Hasher hasher;
-    private MetaData metaData;
     private static final String zkHost = "0.0.0.0";
     private static final int zkPort = 3100;
     private ZooKeeper zk;
@@ -55,7 +53,6 @@ public class ECS implements Watcher{
         this.availServers = new ArrayList<IECSNode>();
         this.usedServers = new ArrayList<IECSNode>();
         this.hashRing = new ArrayList<HashRingEntry>();
-        this.metaData = new MetaData();
         this.escnMap = new HashMap<String, IECSNode>();
         try {
 			hasher = new MD5Hasher();

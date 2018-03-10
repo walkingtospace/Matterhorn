@@ -188,7 +188,7 @@ public class KVServer implements IKVServer, Watcher {
 			String name = "server1";
 			String zkHostname = "0.0.0.0";
 			int zKPort = 3100;
-			KVServer server = new KVServer(name, zkHostname, zkPort);
+			KVServer server = new KVServer(name, zkHostname, zKPort);
 			
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");

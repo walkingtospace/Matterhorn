@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.UnknownHostException;
+import java.security.NoSuchAlgorithmException;
 
 // 3rd party library import
 import org.apache.log4j.Level;
@@ -26,7 +27,7 @@ public class KVClient implements IKVClient {
     private KVStore kvstore = null;
     private boolean stop = false;
 
-    public void run() {
+    public void run() throws NumberFormatException, NoSuchAlgorithmException {
         while(!stop) {
             stdin = new BufferedReader(new InputStreamReader(System.in));
             System.out.print(PROMPT);
@@ -44,7 +45,7 @@ public class KVClient implements IKVClient {
 
     @Override
     public void newConnection(String hostname, int port)
-            throws UnknownHostException, IOException {
+            throws UnknownHostException, IOException, NoSuchAlgorithmException {
         kvstore = new KVStore(hostname, port);
         kvstore.connect();
         System.out.println("Connected to server successfully");
@@ -58,7 +59,7 @@ public class KVClient implements IKVClient {
     }
 
 
-    public void handleCommand(String cmdLine) {
+    public void handleCommand(String cmdLine) throws NumberFormatException, NoSuchAlgorithmException {
         String[] tokens = cmdLine.split("\\s+");
 
         if(tokens[0].equals("quit")) {
@@ -203,7 +204,7 @@ public class KVClient implements IKVClient {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NumberFormatException, NoSuchAlgorithmException {
         try {
             new LogSetup("logs/client.log", Level.OFF);
             KVClient ui = new KVClient();
