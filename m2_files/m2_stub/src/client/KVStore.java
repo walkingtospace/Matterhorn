@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeoutException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.TreeMap;
 import java.io.IOException;
 import java.io.InputStream;
@@ -112,7 +113,7 @@ public class KVStore implements KVCommInterface {
         	if (res != null) {
         		Thread.sleep(RETRY_SLEEP_MS);
         		if (res.getStatus() == StatusType.SERVER_NOT_RESPONSIBLE) {
-        			// metadata = res.getMetaData();
+        			metaData = buildTreeMap(res.getMetaData());
         			metaDataEntry = getResponsibleServer(key);
                     address = metaDataEntry.serverHost;
                     port = metaDataEntry.serverPort;
@@ -151,6 +152,14 @@ public class KVStore implements KVCommInterface {
     	String rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
     	MetaDataEntry entry = new MetaDataEntry("InitialServer", address, port, leftHash, rightHash);
     	metaData.put(rightHash, entry);
+    	return metaData;
+    }
+    
+    private TreeMap<String, MetaDataEntry> buildTreeMap(List<MetaDataEntry> metaDataList) {
+    	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
+    	for (MetaDataEntry entry : metaDataList) {
+    		metaData.put(entry.rightHash, entry);
+    	}
     	return metaData;
     }
 

@@ -1,8 +1,13 @@
 package common.message;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -37,11 +42,22 @@ public class TextMessage implements Serializable, KVMessage{
     }
 
 
-    public TextMessage(StatusType status, String key, String value) {
+    public TextMessage(StatusType status, String key, String value, List<MetaDataEntry> metaData) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("status", status.toString());
         this.jsonMessage.put("key", key);
         this.jsonMessage.put("value", value);
+        JSONArray metaDataArray = new JSONArray();
+        for (MetaDataEntry entry : metaData) {
+        	JSONObject metaDataObject = new JSONObject();
+        	metaDataObject.put("serverName", entry.serverName);
+        	metaDataObject.put("serverHost", entry.serverHost);
+        	metaDataObject.put("serverPort", entry.serverPort);
+        	metaDataObject.put("leftHash", entry.leftHash);
+        	metaDataObject.put("rightHash", entry.rightHash);
+        	metaDataArray.add(metaDataObject);
+        }
+        this.jsonMessage.put("metadata", metaDataArray);
         this.msg = jsonMessage.toString();
         isClient = false;
 //      StringWriter out = new StringWriter();
@@ -147,7 +163,22 @@ public class TextMessage implements Serializable, KVMessage{
             return null;
         return StatusType.valueOf((String) (isClient ? jsonMessage.get("operation") : jsonMessage.get("status")));
     }
-
+    
+    @SuppressWarnings("unchecked")
+	public List<MetaDataEntry> getMetaData() {
+    	if (jsonMessage == null)
+            return null;
+    	List<MetaDataEntry> metaDataList = new ArrayList<MetaDataEntry>();
+    	JSONArray metaDataArray = (JSONArray) jsonMessage.get("metadata");
+    	for (int i = 0; i < metaDataArray.size(); i++) {
+    		JSONObject obj = (JSONObject) metaDataArray.get(i);
+    		MetaDataEntry metaDataEntry = new MetaDataEntry((String) obj.get("serverName"),
+    				(String) obj.get("serverHost"), (int) obj.get("serverPort"),
+    				(String) obj.get("leftHash"), (String) obj.get("rightHash"));
+    		metaDataList.add(metaDataEntry);
+    	}
+    	return metaDataList;
+    }
 
 	@Override
 	public IECSNode getResponsibleServer() {
