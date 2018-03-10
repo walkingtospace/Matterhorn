@@ -11,6 +11,8 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -51,6 +53,8 @@ public class KVServer implements IKVServer, Watcher {
     
     private String dbPath = "./db/";
     private String zkPath = "/";
+    private String zkHostname;
+    private int zkPort;
     
     private MetaDataEntry metaDataEntry;
     private String name;
@@ -67,6 +71,8 @@ public class KVServer implements IKVServer, Watcher {
         /* KenNote: The func signature is different in M2 */
     	this.name = name;
         this.dbPath += name + "/";
+        this.zkHostname = zkHostname;
+        this.zkPort = zkPort;
         
         try {
 			hasher = new MD5Hasher();
@@ -109,7 +115,7 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     
-    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
+    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) throws KeeperException, InterruptedException {
     	
     	this.metaDataEntry = metaDataEntry;
     	this.cacheSize = cacheSize;
@@ -123,6 +129,9 @@ public class KVServer implements IKVServer, Watcher {
         catch(SecurityException se){
             logger.error("Error! Can't create database folder");
         }
+        
+        
+        
         running = initializeServer();
         if(serverSocket != null) {
             while(running){
@@ -141,6 +150,29 @@ public class KVServer implements IKVServer, Watcher {
             }
         }
         logger.info("Server stopped.");
+    }
+    
+    public List<MetaDataEntry> fillMetaData() throws IOException, KeeperException, InterruptedException {
+    	List<MetaDataEntry> metaData = new ArrayList<>();
+    	String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
+    	ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
+    	List<String> zNodes = rootZk.getChildren(zkPath, false);
+    	for (String zNode: zNodes) {
+
+    		byte[] raw_data = rootZk.getData(zkPath + zNode, false, null);
+            String data = new String(raw_data);
+            
+            JSONObject jsonMessage = decodeJsonStr(data);
+            
+            String serverHost = (String)jsonMessage.get("NodeHost");
+            int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+            String leftHash = (String)jsonMessage.get("LeftHash");
+            String rightHash = (String)jsonMessage.get("RightHash");
+            
+            MetaDataEntry nodeMetaDataEntry = new MetaDataEntry(serverHost, serverHost, serverPort, leftHash, rightHash);
+            metaData.add(nodeMetaDataEntry);
+    	}
+    	return metaData;
     }
     
     // invoker should provide zkHostname, zkPort, name and zkPath
