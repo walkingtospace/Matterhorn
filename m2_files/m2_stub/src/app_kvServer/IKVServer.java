@@ -117,7 +117,7 @@ public interface IKVServer {
     /**
      * ECS-related moveData, move the given hashRange to the server going by the targetName
      */
-    public boolean moveData(BigInteger[] hashRange, String targetName) throws Exception;
+    public boolean moveData(String[] hashRange, String targetName) throws Exception;
     
     public void update(MetaDataEntry metaDataEntry);
 }

@@ -16,8 +16,8 @@ public class MetaData {
     public boolean addEntry(String serverName,
                     String serverHost,
                     int serverPort,
-                    BigInteger leftHash,
-                    BigInteger rightHash) {
+                    String leftHash,
+                    String rightHash) {
         try {
             MetaDataEntry entry = new MetaDataEntry(serverHost,
                                                     serverPort,

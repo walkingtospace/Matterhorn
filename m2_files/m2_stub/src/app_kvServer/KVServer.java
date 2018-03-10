@@ -22,6 +22,15 @@ import logger.LogSetup;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
+
+import org.apache.zookeeper.ZooKeeper;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import client.KVStore;
 
@@ -36,7 +45,7 @@ import common.helper.MD5Hasher;
 import common.message.MetaData;
 import common.message.MetaDataEntry;
 
-public class KVServer implements IKVServer {
+public class KVServer implements IKVServer, Watcher {
 
     /**
      * Start KV Server with selected name
@@ -54,22 +63,54 @@ public class KVServer implements IKVServer {
     private KVCache cache;
     
     private String dbPath = "./db/";
+    private String zkPath = "/root/";
     
     private MetaDataEntry metaDataEntry;
     private String name;
     private String zkHostname;
     private int zkPort;
     private boolean writeLock;
+    
+    private String state;
+    
+    private ZooKeeper zk;
 
     public KVServer(String name,
                     String zkHostname,
-                    int zkPort) {
+                    int zkPort) throws KeeperException, InterruptedException, IOException {
         /* KenNote: The func signature is different in M2 */
     	this.name = name;
     	this.zkHostname = zkHostname;
         this.zkPort = zkPort;
         this.dbPath += name + "/";
+        
+//        this.zkPath += name + "/";
+        zk = new ZooKeeper(zkHostname, zkPort, this);
+    	
+        byte[] raw_data = zk.getData(zkPath + name, this, null);
+        String data = new String(raw_data);
+        
+        JSONObject jsonMessage = null;
+        JSONParser parser = new JSONParser();
+        try {
+            jsonMessage = (JSONObject) parser.parse(data);
+        } catch (ParseException e) {
+            logger.error("Error! " +
+                    "Unable to parse incoming bytes to json. \n", e);
+        }
+        
+       
+        int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
+        String strategy = (String)jsonMessage.get("CacheStrategy");
+        String serverHost = (String)jsonMessage.get("NodeHost");
+        int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+        String leftHash = (String)jsonMessage.get("LeftHash");
+        String rightHash = (String)jsonMessage.get("RightHash");
+        MetaDataEntry metaDataEntry = new MetaDataEntry(serverHost, serverPort, leftHash, rightHash);
+        
+        this.initKVServer(metaDataEntry, cacheSize, strategy);
     }
+    
     
     public void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
     	
@@ -105,7 +146,7 @@ public class KVServer implements IKVServer {
         logger.info("Server stopped.");
     }
     
-    // invoker should provide zkHostname, zkPort, name
+    // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
 		try {
 			if (args.length != 4) {
@@ -116,7 +157,7 @@ public class KVServer implements IKVServer {
 			int zkPort = Integer.parseInt(args[1]);
 			String name = args[2];
 			KVServer server = new KVServer(name, zkHostname, zkPort);
-			server.run();
+			
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
 		}
@@ -359,25 +400,45 @@ public class KVServer implements IKVServer {
 
     @Override
     // assume hashRange is given in clockwise rotation
-    public boolean moveData(BigInteger[] hashRange, String targetName) throws Exception {
-    	// special case: hashRange across starting of the ring or end of the ring
-    	if (hashRange[0].compareTo(hashRange[1]) == 1) {
-    		hashRange[1] = hashRange[1].add(hashRange[0]);
-    	}
-    	// logic to retrive MetaData
-    	MetaDataEntry targetMetaDataEntry = metaData.getMetaData().get(targetName);
-    	KVStore migrationClient = new KVStore(targetMetaDataEntry.serverHost, targetMetaDataEntry.serverPort);
+    public boolean moveData(String[] hashRange, String targetName) throws Exception {
+
+    	// logic to retrieve MetaData
+    	byte[] raw_data = zk.getData(zkPath + targetName, this, null);
+    	String data = new String(raw_data);
+    	
+    	JSONObject jsonMessage = null;
+        JSONParser parser = new JSONParser();
+        try {
+            jsonMessage = (JSONObject) parser.parse(data);
+        } catch (ParseException e) {
+            logger.error("Error! " +
+                    "Unable to parse incoming bytes to json. \n", e);
+        }
+        String targetServerHost = (String) jsonMessage.get("NodeHost");
+        int targetServerPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+    	
+//    	List<String> list = zk.getChildren(zkPath, true);
+    	
+    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
     	
     	migrationClient.connect();
     	MD5Hasher hasher = new MD5Hasher();
+    	String maxHash = hasher.hashString("0");
+    	String minHash = hasher.hashString("FFFFFF");
     	File[] files = new File(dbPath).listFiles();
         for (File file: files) {
         	String fileName = file.toString();
             if (fileName.endsWith(".kv")) {
-                String key = fileName.substring(0, fileName.length() - 4);
-                BigInteger hashValue = hasher.hashString(key);
+                String key = fileName.substring(0, fileName.length() - 3);
+                String hashValue = hasher.hashString(key);
                 
-                if (hashValue.compareTo(hashRange[0]) == 1 && hashValue.compareTo(hashRange[1]) == -1) {
+                if ((hasher.compareHash(hashRange[0], hashValue) == -1 && hasher.compareHash(hashValue, hashRange[1]) == -1) 
+                		|| (hasher.compareHash(hashRange[0], hashValue) == 0)) {
+                	String value = getValueFromFile(dbPath + fileName);
+                	migrationClient.put(key, value);
+                // special case: hashRange across starting of the ring or end of the ring
+                } else if ((hasher.compareHash(hashValue, hashRange[0]) == -1 && hasher.compareHash(hashValue, hashRange[1]) == -1) || 
+                		(hasher.compareHash(hashValue, hashRange[0]) == 1 && hasher.compareHash(hashValue, hashRange[1]) == 1)) {
                 	String value = getValueFromFile(dbPath + fileName);
                 	migrationClient.put(key, value);
                 }
@@ -444,4 +505,35 @@ public class KVServer implements IKVServer {
             return false;
         }
     }
+
+	@Override
+	public void process(WatchedEvent event) {
+		EventType type = event.getType();
+		switch (type) {
+		case NodeDataChanged:
+			break;
+		case NodeCreated:
+			break;
+		case NodeDeleted:
+			break;
+		}
+//		byte[] data;
+//		try {
+//			data = zk.getData(zkPath, this, null);
+//		} catch (KeeperException | InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		// decode zNode data
+//        //String string = new String(data);
+//        int cacheSize;
+//        String strategy;
+//        String serverHost;
+//        int serverPort;
+//        BigInteger leftHash;
+//        BigInteger rightHash;
+//        MetaDataEntry metaDataEntry = new MetaDataEntry(serverHost, serverPort, leftHash, rightHash);
+		
+	}
 }
