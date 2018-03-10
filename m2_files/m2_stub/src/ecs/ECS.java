@@ -46,7 +46,7 @@ public class ECS implements Watcher{
     private MD5Hasher hasher;
     private MetaData metaData;
     private static final String zkHost = "0.0.0.0";
-    private static final int zkPort = 2181;
+    private static final int zkPort = 3100;
     private ZooKeeper zk;
 
     
