@@ -422,9 +422,9 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
         // update znode
-    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
-    		return true;
-    	}
+//    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
+//    		return true;
+//    	}
     	String zkPath = "/" + escn.getNodeName();
     	JSONObject jsonMessage = new JSONObject();
         jsonMessage.put("NodeName", escn.getNodeName());
@@ -484,7 +484,6 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
         // update znode
-    	System.out.println("WTFFFFFF " + escn.getNodeName() + " " + target);
     	if(((ECSNode)escn).target == target) {
     		return true;
     	}
@@ -571,6 +570,8 @@ public class ECS implements Watcher{
             escn = (ECSNode)ringEntry.escn;
             escn.leftHash = "0"; // Minimal Hash
             escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
+            status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+            status = this.updateZnodeNodeHash(escn, escn.nameHash);
         } else {
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
