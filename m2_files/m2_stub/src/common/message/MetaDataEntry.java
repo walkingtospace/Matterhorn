@@ -6,10 +6,10 @@ public class MetaDataEntry {
 	
 	public String serverHost;
     public int serverPort;
-    public BigInteger leftHash;
-    public BigInteger rightHash;
+    public String leftHash;
+    public String rightHash;
     
-    public MetaDataEntry(String serverHost, int serverPort, BigInteger leftHash, BigInteger rightHash) {
+    public MetaDataEntry(String serverHost, int serverPort, String leftHash, String rightHash) {
     	
     	this.serverHost = serverHost;
     	this.serverPort = serverPort;
