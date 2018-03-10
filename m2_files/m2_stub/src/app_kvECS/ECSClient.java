@@ -57,6 +57,10 @@ public class ECSClient implements IECSClient {
         } else if (tokens[0].equals("addNodes")){
             this.addNodes(Integer.parseInt(tokens[1]), tokens[2],
                           Integer.parseInt(tokens[3]));
+        } else if (tokens[0].equals("showHashRing")) {
+        	ecs.printHashRing();
+        } else if (tokens[0].equals("showServerList")) {
+        	ecs.printServerList();
         } else if (tokens[0].equals("start")) {
             this.start();
         } else if (tokens[0].equals("stop")) {
@@ -70,6 +74,7 @@ public class ECSClient implements IECSClient {
         	int i = 1;
         	while(i < tokens.length) {
         		nodeList.add(tokens[i]);
+        		i++;
         	}
             this.removeNodes(nodeList);
         } else if(tokens[0].equals("logLevel")) {
@@ -156,10 +161,6 @@ public class ECSClient implements IECSClient {
 
     private void printHelp() {
         StringBuilder sb = new StringBuilder();
-        sb.append(PROMPT).append("ECSCLIENT HELP (Usage):\n");
-        sb.append(PROMPT);
-        sb.append("::::::::::::::::::::::::::::::::");
-        sb.append("::::::::::::::::::::::::::::::::\n");
         System.out.println(sb.toString());
     }
 

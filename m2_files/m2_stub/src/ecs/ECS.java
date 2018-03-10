@@ -45,7 +45,7 @@ public class ECS implements Watcher{
     private HashMap<String, IECSNode> escnMap;
     private MD5Hasher hasher;
     private static final String zkHost = "0.0.0.0";
-    private static final int zkPort = 3100;
+    private static final int zkPort = 2181;
     private ZooKeeper zk;
 
     
@@ -74,7 +74,7 @@ public class ECS implements Watcher{
 		}
         
         // Need to remove
-        this.test();
+        // this.test();
     }
 
     // Purely testing purpose. Should remove after everything is done
@@ -94,7 +94,7 @@ public class ECS implements Watcher{
         boolean status;
         boolean global_status = true;
 
-        for (IECSNode esc: availServers) {
+        for (IECSNode esc: this.usedServers) {
             status = startServer(esc);
             if (status == false) {
                 global_status = false;
@@ -110,7 +110,7 @@ public class ECS implements Watcher{
         boolean status;
         boolean global_status = true;
 
-        for (IECSNode esc: availServers) {
+        for (IECSNode esc: this.usedServers) {
             status = stopServer(esc);
             if (status == false) {
                 global_status = false;
@@ -126,14 +126,17 @@ public class ECS implements Watcher{
         boolean status;
         boolean global_status = true;
 
-        for (IECSNode esc: availServers) {
+        for (IECSNode esc: this.usedServers) {
             status = shutdownServer(esc);
             if (status == false) {
                 global_status = false;
-                System.out.println("Failed to start server");
+                System.out.println("Failed to shutdown server");
             }
         }
 
+        // Return the usedServers to avaiServers
+        this.availServers.addAll(this.usedServers);
+        this.usedServers.clear();
         return global_status;
     }
 
@@ -238,10 +241,31 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-    	System.out.println("Trigger Event from ZK");
+    	//System.out.println("Trigger Event from ZK");
         return;
     }
 
+    public void printHashRing() {
+    	// Print the Hash Ring
+    	System.out.println("The Hash Ring:");
+    	for (HashRingEntry r: this.hashRing) {
+    		System.out.println(r);
+    	}
+    }
+
+    public void printServerList() {
+    	// Print Available Servers
+    	System.out.println("Available Servers:");
+    	for (IECSNode e: this.availServers) {
+    		System.out.println(e.getNodeName());
+    	}
+    	// Print Used Servers
+    	System.out.println("Used Servers");
+    	for (IECSNode e: this.usedServers) {
+    		System.out.println(e.getNodeName());
+    	}
+    }
+    
     private boolean connectToZK() throws KeeperException, IOException{
         // Use Zookeeper
     	String connection = this.zkHost + ":" + Integer.toString(this.zkPort);
@@ -383,6 +407,20 @@ public class ECS implements Watcher{
 			return false;
 		}
         
+    	return true;
+    }
+    
+    private boolean removeZnode(IECSNode escn) {
+    	String path = "/" + escn.getNodeName();
+    	try {
+			this.zk.delete(path,zk.exists(path,true).getVersion());
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		}
     	return true;
     }
 
@@ -546,12 +584,16 @@ public class ECS implements Watcher{
     		HashRingEntry r = hashRing.get(i);
     		if (r.escn.getNodeName() == escn.getNodeName()) {
     			// found the ring entry
+    			IECSNode e = r.escn;
+    			((ECSNode)e).leftHash = "-1";
+    			((ECSNode)e).rightHash = "-1";
+    			this.updateZnodeHash(e, "-1", "-1");
     			this.hashRing.remove(i);
     			return true;
     		}
     		i++;
     	}
-    	return false;
+    	return true;
     }
 
     private boolean recalculateHashRange() {
@@ -561,7 +603,6 @@ public class ECS implements Watcher{
         HashRingEntry ringEntry;
         boolean status = true;
         ECSNode escn;
-        System.out.println("Recalculating Hash Ring");
         // if there's only one entry
         if (numRingEntry == 1) {
             ringEntry = this.hashRing.get(0);
@@ -592,19 +633,23 @@ public class ECS implements Watcher{
 
 
     private boolean startServer(IECSNode escn) {
+    	((ECSNode)escn).state = "START";
     	return this.updateZnodeState(escn, "START");
     }
 
 
     private boolean stopServer(IECSNode escn) {
-        // Change the state of node in Znode to stop
+    	((ECSNode)escn).state = "STOP";
     	return this.updateZnodeState(escn, "STOP");
 
     }
 
 
     private boolean shutdownServer(IECSNode escn) {
-        // Use SSH to shutdown and kill the node
-    	return false;
+        // Remove the node from hash ring
+    	this.removeNode(escn);
+    	// remove the znode
+    	this.removeZnode(escn);
+    	return true;
     }
 }
