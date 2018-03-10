@@ -33,7 +33,6 @@ public class ECSClient implements IECSClient {
 
     private boolean stop = false;
 
-    
     public void run() {
     	ecs = new ECS(CONFIGPATH);
         while(!stop) {

@@ -152,13 +152,14 @@ public class ClientConnection implements Runnable {
 	                            break;
 	                    }
                     }
+                    TextMessage resultMsg;
                     if (metaData == null) {
-	                    TextMessage resultMsg = new TextMessage(status, key, value);
+	                    resultMsg = new TextMessage(status, key, value);
 	                    
-	                    sendMessage(resultMsg);
                     } else {
-                    	
+                    	resultMsg = new TextMessage(status, key, value, metaData);
                     }
+                    sendMessage(resultMsg);
                 /* connection either terminated by the client or lost due to 
                  * network problems*/   
                 } catch (IOException | NoSuchAlgorithmException | KeeperException | InterruptedException ioe) {

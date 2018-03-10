@@ -2,7 +2,6 @@ package app_kvServer;
 
 import java.math.BigInteger;
 
-import common.message.MetaData;
 import common.message.MetaDataEntry;
 
 public interface IKVServer {
