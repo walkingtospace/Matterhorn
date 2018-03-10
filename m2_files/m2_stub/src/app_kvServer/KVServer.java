@@ -11,6 +11,8 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -51,25 +53,32 @@ public class KVServer implements IKVServer, Watcher {
     
     private String dbPath = "./db/";
     private String zkPath = "/";
+    private String zkHostname;
+    private int zkPort;
     
     private MetaDataEntry metaDataEntry;
     private String name;
-    private String zkHostname;
-    private int zkPort;
     private boolean writeLock;
     
     private volatile String state;
     
     private ZooKeeper zk;
+    private MD5Hasher hasher;
 
     public KVServer(String name,
                     String zkHostname,
                     int zkPort) throws KeeperException, InterruptedException, IOException {
         /* KenNote: The func signature is different in M2 */
     	this.name = name;
-    	this.zkHostname = zkHostname;
-        this.zkPort = zkPort;
         this.dbPath += name + "/";
+        this.zkHostname = zkHostname;
+        this.zkPort = zkPort;
+        
+        try {
+			hasher = new MD5Hasher();
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
         
         String connection = zkHostname + ":" + Integer.toString(zkPort) + zkPath + name;
         zk = new ZooKeeper(connection, 3000, this);
@@ -77,7 +86,24 @@ public class KVServer implements IKVServer, Watcher {
         byte[] raw_data = zk.getData(zkPath + name, this, null);
         String data = new String(raw_data);
         
-        JSONObject jsonMessage = null;
+        JSONObject jsonMessage = decodeJsonStr(data);
+        
+        state = (String) jsonMessage.get("State");
+        int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
+        String strategy = (String)jsonMessage.get("CacheStrategy");
+        String serverHost = (String)jsonMessage.get("NodeHost");
+        int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+        String leftHash = (String)jsonMessage.get("LeftHash");
+        String rightHash = (String)jsonMessage.get("RightHash");
+
+
+        MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
+        
+        this.initKVServer(metaDataEntry, cacheSize, strategy);
+    }
+    
+    private JSONObject decodeJsonStr(String data) {
+    	JSONObject jsonMessage = null;
         JSONParser parser = new JSONParser();
         try {
             jsonMessage = (JSONObject) parser.parse(data);
@@ -85,22 +111,11 @@ public class KVServer implements IKVServer, Watcher {
             logger.error("Error! " +
                     "Unable to parse incoming bytes to json. \n", e);
         }
-        
-        state = (String) jsonMessage.get("STATE");
-        int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
-        String strategy = (String)jsonMessage.get("CacheStrategy");
-        String serverHost = (String)jsonMessage.get("NodeHost");
-        int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
-        String leftHash = (String)jsonMessage.get("LeftHash");
-        String rightHash = (String)jsonMessage.get("RightHash");
-        MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
-        
-        this.initKVServer(metaDataEntry, cacheSize, strategy);
+        return jsonMessage;
     }
     
     
-    
-    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) {
+    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) throws KeeperException, InterruptedException {
     	
     	this.metaDataEntry = metaDataEntry;
     	this.cacheSize = cacheSize;
@@ -114,6 +129,9 @@ public class KVServer implements IKVServer, Watcher {
         catch(SecurityException se){
             logger.error("Error! Can't create database folder");
         }
+        
+        
+        
         running = initializeServer();
         if(serverSocket != null) {
             while(running){
@@ -134,22 +152,54 @@ public class KVServer implements IKVServer, Watcher {
         logger.info("Server stopped.");
     }
     
+    public List<MetaDataEntry> fillMetaData() throws IOException, KeeperException, InterruptedException {
+    	List<MetaDataEntry> metaData = new ArrayList<>();
+    	String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
+    	ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
+    	List<String> zNodes = rootZk.getChildren(zkPath, false);
+    	for (String zNode: zNodes) {
+
+    		byte[] raw_data = rootZk.getData(zkPath + zNode, false, null);
+            String data = new String(raw_data);
+            
+            JSONObject jsonMessage = decodeJsonStr(data);
+            
+            String serverHost = (String)jsonMessage.get("NodeHost");
+            int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+            String leftHash = (String)jsonMessage.get("LeftHash");
+            String rightHash = (String)jsonMessage.get("RightHash");
+            
+            MetaDataEntry nodeMetaDataEntry = new MetaDataEntry(serverHost, serverHost, serverPort, leftHash, rightHash);
+            metaData.add(nodeMetaDataEntry);
+    	}
+    	return metaData;
+    }
+    
     // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
 		try {
-			if (args.length != 4) {
-				System.out.println("Wrong number of arguments passed to server");
-			}
-			new LogSetup("logs/server.log", Level.ALL);
-			String zkHostname = args[0];
-			int zkPort = Integer.parseInt(args[1]);
-			String name = args[2];
+//			if (args.length != 4) {
+//				System.out.println("Wrong number of arguments passed to server");
+//			}
+//			new LogSetup("logs/server.log", Level.ALL);
+//			String zkHostname = args[0];
+//			int zkPort = Integer.parseInt(args[1]);
+//			String name = args[2];
+			String name = "server1";
+			String zkHostname = "0.0.0.0";
+			int zKPort = 3100;
 			KVServer server = new KVServer(name, zkHostname, zkPort);
 			
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
 		}
 	}
+    
+
+    
+    public void test() {
+    	
+    }
 
 
 
@@ -194,7 +244,6 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized boolean inCache(String key){
-        /* KenNote: Just copied over from M1 */
         if (cache != null && cache.get(key) != null) {
             return true;
         }
@@ -230,7 +279,7 @@ public class KVServer implements IKVServer, Watcher {
     }
 
     public boolean isKeyInRange(String key) throws NoSuchAlgorithmException {
-    	MD5Hasher hasher = new MD5Hasher();
+    	
     	String hashedKey = hasher.hashString(key);
     	String leftHash = metaDataEntry.leftHash;
     	String rightHash = metaDataEntry.rightHash;
@@ -244,7 +293,6 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
-        /* KenNote: Just copied over from M1 */
     	if (writeLock == true)
     		return;
         if (cache != null) {
@@ -418,9 +466,9 @@ public class KVServer implements IKVServer, Watcher {
     	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
     	
     	migrationClient.connect();
-    	MD5Hasher hasher = new MD5Hasher();
-    	String maxHash = hasher.hashString("0");
-    	String minHash = hasher.hashString("FFFFFF");
+
+//    	String maxHash = hasher.hashString("0");
+//    	String minHash = hasher.hashString("FFFFFF");
     	File[] files = new File(dbPath).listFiles();
         for (File file: files) {
         	String fileName = file.toString();
@@ -529,14 +577,6 @@ public class KVServer implements IKVServer, Watcher {
 					String targetName = (String) jsonMessage.get("TargetName");
 					String leftHash = (String) jsonMessage.get("LeftHash");
 					String rightHash = (String) jsonMessage.get("RighttHash");
-					MD5Hasher hasher;
-					try {
-						hasher = new MD5Hasher();
-					} catch (NoSuchAlgorithmException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-						return;
-					}
 					if (targetName.equals("NULL")) {
 						String[] hashRange = {leftHash, rightHash};
 						boolean result;

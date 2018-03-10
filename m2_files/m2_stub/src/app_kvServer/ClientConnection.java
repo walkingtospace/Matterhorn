@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
 import org.apache.log4j.*;
+import org.apache.zookeeper.KeeperException;
 
+import common.message.MetaDataEntry;
 import common.message.TextMessage;
 import common.message.KVMessage.StatusType;
 
@@ -66,6 +69,7 @@ public class ClientConnection implements Runnable {
                     }
                     String key = null;
                     String value = null;
+                    List<MetaDataEntry> metaData = null;
                     StatusType status = StatusType.PUT_SUCCESS;
                     if (kvServer.getState().equals("STOP")) {
                     	status = StatusType.SERVER_STOPPED;
@@ -88,6 +92,7 @@ public class ClientConnection implements Runnable {
 	                            }
 	                            if (!kvServer.isKeyInRange(key)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
+	                        		metaData = kvServer.fillMetaData();
 	                        		break;
 	                        	}
 	                            try {
@@ -108,6 +113,7 @@ public class ClientConnection implements Runnable {
 	                            }
 	                            if (!kvServer.isKeyInRange(key)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
+	                        		metaData = kvServer.fillMetaData();
 	                        		break;
 	                        	}
 	                            try {
@@ -129,6 +135,7 @@ public class ClientConnection implements Runnable {
 	                        	key = latestMsg.getKey();
 	                        	if (!kvServer.isKeyInRange(key)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
+	                        		metaData = kvServer.fillMetaData();
 	                        		break;
 	                        	}
 	                            key = latestMsg.getKey();
@@ -145,13 +152,16 @@ public class ClientConnection implements Runnable {
 	                            break;
 	                    }
                     }
-                    TextMessage resultMsg = new TextMessage(status, key, value);
-                    
-                    sendMessage(resultMsg);
-                    
+                    if (metaData == null) {
+	                    TextMessage resultMsg = new TextMessage(status, key, value);
+	                    
+	                    sendMessage(resultMsg);
+                    } else {
+                    	
+                    }
                 /* connection either terminated by the client or lost due to 
                  * network problems*/   
-                } catch (IOException | NoSuchAlgorithmException ioe) {
+                } catch (IOException | NoSuchAlgorithmException | KeeperException | InterruptedException ioe) {
                     logger.error("Error! Connection lost!");
                     isOpen = false;
                 }               
