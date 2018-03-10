@@ -1,3 +1,4 @@
+
 package ecs;
 
 // Java Import
@@ -369,7 +370,7 @@ public class ECS implements Watcher{
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("target", ((ECSNode)escn).target);
+        jsonMessage.put("Target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,

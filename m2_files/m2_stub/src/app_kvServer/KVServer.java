@@ -32,6 +32,7 @@ import cache.KVLRUCache;
 import client.KVStore;
 import common.helper.MD5Hasher;
 import common.message.MetaDataEntry;
+import ecs.ECSNode;
 import logger.LogSetup;
 
 public class KVServer implements IKVServer, Watcher {
@@ -81,12 +82,10 @@ public class KVServer implements IKVServer, Watcher {
 		}
         
         String connection = zkHostname + ":" + Integer.toString(zkPort) + zkPath + name;
-        zk = new ZooKeeper(connection, 3000, this);
+        this.zk = new ZooKeeper(connection, 3000, this);
     	
-        byte[] raw_data = zk.getData(zkPath + name, this, null);
-        String data = new String(raw_data);
         
-        JSONObject jsonMessage = decodeJsonStr(data);
+        JSONObject jsonMessage = this.retrieveZnodeData("");
         
         state = (String) jsonMessage.get("State");
         int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
@@ -285,7 +284,8 @@ public class KVServer implements IKVServer, Watcher {
     	String rightHash = metaDataEntry.rightHash;
     	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1) 
     			|| (hasher.compareHash(hashedKey, leftHash) == -1 && hasher.compareHash(hashedKey, rightHash) == -1)
-    			|| (hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == 1)) {
+    			|| (hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == 1)
+    			|| hasher.compareHash(hashedKey, rightHash) == 0) {
     		return true;
     	}
     	return false;
@@ -352,14 +352,12 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized void clearCache(){
-        /* KenNote: Just copied over from M1 */
         cache = createCache(strategy);
     }
 
 
     @Override
     public synchronized void clearStorage(){
-        /* KenNote: Just copied over from M1 */
         File[] files = new File(dbPath).listFiles();
         for (File file: files) {
             if (file.toString().endsWith(".kv")) {
@@ -371,7 +369,6 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void run(){
-        /* KenNote: Just copied over from M1 */
         running = initializeServer();
         
         if(serverSocket != null) {
@@ -396,15 +393,12 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void kill(){
-        /* KenNote: Just copied over from M1 */
         stopServer();
     }
 
 
     @Override
     public void close(){
-        /* KenNote: Just copied over from M1 */
-        // Cache is write-through, so saving is not necessary.
         stopServer();
     }
 
@@ -416,7 +410,7 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
     	this.state = "STOP";
     }
 
@@ -441,55 +435,84 @@ public class KVServer implements IKVServer, Watcher {
     	this.metaDataEntry = metaDataEntry;
     }
 
+    private JSONObject retrieveZnodeData(String nodeName) throws IOException, KeeperException, InterruptedException {
+    	byte[] raw_data;
+    	if (nodeName.equals("")) {
+    		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
+    		ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
+    		raw_data = rootZk.getData(zkPath + nodeName, false, null);
+    		rootZk.close();
+    	} else {
+    		raw_data = zk.getData(zkPath + nodeName, this, null);
+    	}
+    	String data = new String(raw_data);
+    	
+    	JSONObject jsonMessage = this.decodeJsonStr(data);
+        return jsonMessage;
+    }
 
     @Override
     // assume hashRange is given in clockwise rotation
-    public boolean moveData(String[] hashRange, String targetName) throws Exception {
+    public boolean moveData(String[] hashRange, String targetName){
+    	
+    	JSONObject jsonMessage;
+		try {
+			jsonMessage = retrieveZnodeData(targetName);
+			String targetServerHost = (String) jsonMessage.get("NodeHost");
+	        int targetServerPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+	    	
+//	    	List<String> list = zk.getChildren(zkPath, true);
+	    	
+	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
+	    	
+	    	migrationClient.connect();
 
-    	// logic to retrieve MetaData
-    	byte[] raw_data = zk.getData(zkPath + targetName, this, null);
-    	String data = new String(raw_data);
-    	
-    	JSONObject jsonMessage = null;
-        JSONParser parser = new JSONParser();
-        try {
-            jsonMessage = (JSONObject) parser.parse(data);
-        } catch (ParseException e) {
-            logger.error("Error! " +
-                    "Unable to parse incoming bytes to json. \n", e);
-        }
-        String targetServerHost = (String) jsonMessage.get("NodeHost");
-        int targetServerPort = Integer.parseInt((String)jsonMessage.get("l"));
-    	
-//    	List<String> list = zk.getChildren(zkPath, true);
-    	
-    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
-    	
-    	migrationClient.connect();
-
-//    	String maxHash = hasher.hashString("0");
-//    	String minHash = hasher.hashString("FFFFFF");
-    	File[] files = new File(dbPath).listFiles();
-        for (File file: files) {
-        	String fileName = file.toString();
-            if (fileName.endsWith(".kv")) {
-                String key = fileName.substring(0, fileName.length() - 3);
-                String hashValue = hasher.hashString(key);
-                
-                if ((hasher.compareHash(hashRange[0], hashValue) == -1 && hasher.compareHash(hashValue, hashRange[1]) == -1) 
-                		|| (hasher.compareHash(hashRange[0], hashValue) == 0)) {
-                	String value = getValueFromFile(dbPath + fileName);
-                	migrationClient.put(key, value);
-                // special case: hashRange across starting of the ring or end of the ring
-                } else if ((hasher.compareHash(hashValue, hashRange[0]) == -1 && hasher.compareHash(hashValue, hashRange[1]) == -1) || 
-                		(hasher.compareHash(hashValue, hashRange[0]) == 1 && hasher.compareHash(hashValue, hashRange[1]) == 1)) {
-                	String value = getValueFromFile(dbPath + fileName);
-                	migrationClient.put(key, value);
-                }
-            }
-        }
-        migrationClient.disconnect();
+//	    	String maxHash = hasher.hashString("0");
+//	    	String minHash = hasher.hashString("FFFFFF");
+	    	File[] files = new File(dbPath).listFiles();
+	        for (File file: files) {
+	        	String fileName = file.toString();
+	            if (fileName.endsWith(".kv")) {
+	                String key = fileName.substring(0, fileName.length() - 3);
+	                String hashedKey = hasher.hashString(key);
+	                
+	                // special case: hashRange across starting of the ring or end of the ring
+	                if ((hasher.compareHash(hashedKey, hashRange[0]) == -1) || (hasher.compareHash(hashedKey, hashRange[0]) == 0)
+	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))
+	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == -1))
+	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
+	                	String value = getValueFromFile(dbPath + fileName);
+	                	migrationClient.put(key, value);
+	                }
+	            }
+	        }
+	        migrationClient.disconnect();
+	        this.notifyECS();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
         return true;
+    }
+    
+    private void notifyECS() {
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", this.name);
+        jsonMessage.put("NodeHost", this.metaDataEntry.serverHost);
+        jsonMessage.put("NodePort", Integer.toString(this.metaDataEntry.serverPort));
+        jsonMessage.put("CacheStrategy", this.strategy.toString());
+        jsonMessage.put("CacheSize", Integer.toString(this.cacheSize));
+        jsonMessage.put("State", state);
+        jsonMessage.put("NodeHash", hasher.hashString(this.name));
+        jsonMessage.put("LeftHash", this.metaDataEntry.leftHash);
+        jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
+        jsonMessage.put("Target", "NULL");
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException | InterruptedException e) {
+			e.printStackTrace();
+		}
     }
     
     private String getValueFromFile(String path) throws IOException {
@@ -552,52 +575,44 @@ public class KVServer implements IKVServer, Watcher {
 
 	@Override
 	public void process(WatchedEvent event) {
-		byte[] raw_data;
+		
+		JSONObject jsonMessage;
 		try {
-			raw_data = zk.getData(zkPath, this, null);
-		} catch (KeeperException | InterruptedException e) {
-			e.printStackTrace();
+			jsonMessage = this.retrieveZnodeData("");
+		} catch (IOException | KeeperException | InterruptedException e1) {
+			e1.printStackTrace();
 			return;
 		}
-		String data = new String (raw_data);
-		
-		JSONObject jsonMessage = null;
-        JSONParser parser = new JSONParser();
-        try {
-            jsonMessage = (JSONObject) parser.parse(data);
-        } catch (ParseException e) {
-            logger.error("Error! " +
-                    "Unable to parse incoming bytes to json. \n", e);
-        }
         
 		EventType type = event.getType();
 		switch (type) {
 			case NodeDataChanged:
-				if (event.getPath().equals(this.zkPath + this.name)) {
-					String targetName = (String) jsonMessage.get("TargetName");
-					String leftHash = (String) jsonMessage.get("LeftHash");
-					String rightHash = (String) jsonMessage.get("RighttHash");
-					if (targetName.equals("NULL")) {
-						String[] hashRange = {leftHash, rightHash};
-						boolean result;
-						try {
-							this.lockWrite();
-							result = this.moveData(hashRange, targetName);
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							return;
-						}
-						if (result) {
-							MetaDataEntry metaDataEntry = new MetaDataEntry(this.name, this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
-							this.update(metaDataEntry);
-							this.unlockWrite();
-						}
+//				if (event.getPath().equals(this.zkPath + this.name)) {
+				String targetName = (String) jsonMessage.get("Target");
+				String leftHash = (String) jsonMessage.get("LeftHash");
+				String rightHash = (String) jsonMessage.get("RighttHash");
+				MetaDataEntry metaDataEntry = new MetaDataEntry(this.name, this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
+				this.update(metaDataEntry);
+				if (!targetName.equals("NULL")) {
+					String[] hashRange = {leftHash, rightHash};
+					boolean result;
+					try {
+						this.lockWrite();
+						result = this.moveData(hashRange, targetName);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						return;
 					}
+					if (result) {
+						this.unlockWrite();
+					}
+//					}
 //					if (hasher.compareHash(leftHash, metaDataEntry.leftHash) != 0 || hasher.compareHash(rightHash, metaDataEntry.rightHash) != 0) {
 //						
 //					}
 				}
+				
 				break;
 //			case NodeCreated:
 //				this.start();
