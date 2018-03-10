@@ -6,4 +6,7 @@ db
 .metadata
 *.MF
 *.txt
+m2-client.jar
+m2-ecs.jar
+m2-server.jar
 .*
