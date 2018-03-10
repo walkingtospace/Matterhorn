@@ -390,10 +390,10 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeState(IECSNode escn, String state) {
         // update znode
-    	if (((ECSNode)escn).state == state) {
-    		// Don't reupdate
-    		return true;
-    	}
+//    	if (((ECSNode)escn).state == state) {
+//    		// Don't reupdate
+//    		return true;
+//    	}
     	String zkPath = "/" + escn.getNodeName();
     	JSONObject jsonMessage = new JSONObject();
         jsonMessage.put("NodeName", escn.getNodeName());
@@ -453,9 +453,9 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
         // update znode
-    	if(((ECSNode)escn).nameHash == nodeHash) {
-    		return true;
-    	}
+//    	if(((ECSNode)escn).nameHash == nodeHash) {
+//    		return true;
+//    	}
     	String zkPath = "/" + escn.getNodeName();
     	JSONObject jsonMessage = new JSONObject();
         jsonMessage.put("NodeName", escn.getNodeName());
@@ -484,9 +484,9 @@ public class ECS implements Watcher{
 
     private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
         // update znode
-    	if(((ECSNode)escn).target == target) {
-    		return true;
-    	}
+//    	if(((ECSNode)escn).target == target) {
+//    		return true;
+//    	}
     	String zkPath = "/" + escn.getNodeName();
     	JSONObject jsonMessage = new JSONObject();
         jsonMessage.put("NodeName", escn.getNodeName());
