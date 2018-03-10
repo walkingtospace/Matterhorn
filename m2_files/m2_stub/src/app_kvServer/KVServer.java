@@ -43,7 +43,6 @@ import cache.KVLRUCache;
 import app_kvServer.IKVServer;
 
 import common.helper.MD5Hasher;
-import common.message.MetaData;
 import common.message.MetaDataEntry;
 
 public class KVServer implements IKVServer, Watcher {
@@ -563,7 +562,7 @@ public class KVServer implements IKVServer, Watcher {
 							return;
 						}
 						if (result) {
-							MetaDataEntry metaDataEntry = new MetaDataEntry(this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
+							MetaDataEntry metaDataEntry = new MetaDataEntry(this.name, this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
 							this.update(metaDataEntry);
 							this.unlockWrite();
 						}
