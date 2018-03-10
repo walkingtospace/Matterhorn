@@ -90,8 +90,8 @@ public class ECS implements Watcher{
     	}
     	
     	
-    	((ECSNode)n0).cacheStrategy = "GG";
-    	this.updateZnode(n0);
+    	this.updateZnodeHash(n0, "-2", "-3");
+    	this.startServer(n0);
     }
 
     public boolean start() {
@@ -253,15 +253,6 @@ public class ECS implements Watcher{
         return true;
     }
 
-
-    private String hash_server(String ip, int port) {
-        String portString = String.valueOf(port);
-        String hash_input = ip + ":" + port;
-
-        return hasher.hashString(hash_input);
-    }
-
-
     private boolean parseConfig(String configPath) {
         // This will reference one line at a time
         String line;
@@ -285,7 +276,9 @@ public class ECS implements Watcher{
                                          "-1",
                                          "-1",
                                          "",
-                                         -1);
+                                         -1,
+                                         "STOP",
+                                         "null");
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -377,10 +370,11 @@ public class ECS implements Watcher{
         jsonMessage.put("NodePort", escn.getNodePort());
         jsonMessage.put("CacheStrategy", cacheStrategy);
         jsonMessage.put("CacheSize", cacheSize);
-        jsonMessage.put("State", "STOP");
+        jsonMessage.put("State", ((ECSNode)escn).state);
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -396,6 +390,99 @@ public class ECS implements Watcher{
     	return true;
     }
 
+    private boolean updateZnodeState(IECSNode escn, String state) {
+        // update znode
+    	if (((ECSNode)escn).state == state) {
+    		// Don't reupdate
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    private boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
+        // update znode
+    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", leftHash);
+        jsonMessage.put("RightHash", rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    private boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
+        // update znode
+    	if(((ECSNode)escn).nameHash == nodeHash) {
+    		return true;
+    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", nodeHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("target", ((ECSNode)escn).target);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
 
     private boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
@@ -462,49 +549,24 @@ public class ECS implements Watcher{
                 	escn.leftHash = hashRing.get(i - 1).hashValue;
                     escn.rightHash = hashRing.get(i).hashValue;
                 }
-                status = updateZnode(ringEntry.escn);
+                status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+                status = this.updateZnodeNodeHash(escn, escn.nameHash);
                 i++;
             }
         }
         return status;
     }
 
-    private boolean updateZnode(IECSNode escn) {
-        // update znode
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", "STOP");
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        byte[] zkData = jsonMessage.toString().getBytes();
-        try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
-		} catch (KeeperException e) {
-			e.printStackTrace();
-			return false;
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			return false;
-		}
-        
-    	return true;
-    }
 
     private boolean startServer(IECSNode escn) {
-        // Change the state of node in Znode to start
-    	return false;
+    	return this.updateZnodeState(escn, "START");
     }
 
 
     private boolean stopServer(IECSNode escn) {
         // Change the state of node in Znode to stop
-    	return false;
+    	return this.updateZnodeState(escn, "STOP");
+
     }
 
 
