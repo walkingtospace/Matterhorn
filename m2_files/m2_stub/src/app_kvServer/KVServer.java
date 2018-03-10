@@ -7,19 +7,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.math.BigInteger;
 import java.net.BindException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
-
-import logger.LogSetup;
-
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -27,24 +18,19 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
-
 import org.apache.zookeeper.ZooKeeper;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import client.KVStore;
-
 import cache.KVCache;
 import cache.KVFIFOCache;
 import cache.KVLFUCache;
 import cache.KVLRUCache;
-
-import app_kvServer.IKVServer;
-
+import client.KVStore;
 import common.helper.MD5Hasher;
-import common.message.MetaData;
 import common.message.MetaDataEntry;
+import logger.LogSetup;
 
 public class KVServer implements IKVServer, Watcher {
 
@@ -107,7 +93,7 @@ public class KVServer implements IKVServer, Watcher {
         int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
-        MetaDataEntry metaDataEntry = new MetaDataEntry(serverHost, serverPort, leftHash, rightHash);
+        MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
         
         this.initKVServer(metaDataEntry, cacheSize, strategy);
     }
@@ -563,7 +549,7 @@ public class KVServer implements IKVServer, Watcher {
 							return;
 						}
 						if (result) {
-							MetaDataEntry metaDataEntry = new MetaDataEntry(this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
+							MetaDataEntry metaDataEntry = new MetaDataEntry(this.name, this.metaDataEntry.serverHost, this.metaDataEntry.serverPort, leftHash, rightHash);
 							this.update(metaDataEntry);
 							this.unlockWrite();
 						}
