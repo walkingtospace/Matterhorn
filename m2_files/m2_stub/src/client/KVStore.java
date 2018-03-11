@@ -32,10 +32,10 @@ public class KVStore implements KVCommInterface {
 	private String initial_address;
 	private int initial_port;
     private TreeMap<String, MetaDataEntry> metaData;
-    private HashMap<AddressKey, Socket> socketMap;
+    private HashMap<AddressKey, Socket> socketMap = new HashMap<AddressKey, Socket>();
     private Logger logger = Logger.getRootLogger();
     private MD5Hasher hasher;
-    private HashSet<StatusType> retryStatuses;
+    private HashSet<StatusType> retryStatuses = new HashSet<StatusType>();
     private volatile boolean isTransfer; 
 
     private static final int BUFFER_SIZE = 1024;
@@ -47,7 +47,6 @@ public class KVStore implements KVCommInterface {
     	initial_address = input_address;
     	initial_port = input_port;
         hasher = new MD5Hasher();
-        retryStatuses = new HashSet<StatusType>();
         retryStatuses.add(StatusType.SERVER_NOT_RESPONSIBLE);
         retryStatuses.add(StatusType.SERVER_STOPPED);
         retryStatuses.add(StatusType.SERVER_WRITE_LOCK);
