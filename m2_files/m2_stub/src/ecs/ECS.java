@@ -39,14 +39,14 @@ import org.apache.zookeeper.ZooDefs;
 
 public class ECS implements Watcher{
 
-    private ArrayList<IECSNode> availServers;
-    private ArrayList<IECSNode> usedServers;
-    private ArrayList<HashRingEntry> hashRing;
-    private HashMap<String, IECSNode> escnMap;
-    private MD5Hasher hasher;
-    private static final String zkHost = "0.0.0.0";
-    private static final int zkPort = 3200;
-    private ZooKeeper zk;
+    public ArrayList<IECSNode> availServers;
+    public ArrayList<IECSNode> usedServers;
+    public ArrayList<HashRingEntry> hashRing;
+    public HashMap<String, IECSNode> escnMap;
+    public MD5Hasher hasher;
+    public static final String zkHost = "0.0.0.0";
+    public static final int zkPort = 3200;
+    public ZooKeeper zk;
 
     
     public ECS(String configPath) {
@@ -266,14 +266,14 @@ public class ECS implements Watcher{
     	}
     }
     
-    private boolean connectToZK() throws KeeperException, IOException{
+    public boolean connectToZK() throws KeeperException, IOException{
         // Use Zookeeper
     	String connection = this.zkHost + ":" + Integer.toString(this.zkPort);
     	this.zk = new ZooKeeper(connection, 3000, this);
         return true;
     }
 
-    private boolean parseConfig(String configPath) {
+    public boolean parseConfig(String configPath) {
         // This will reference one line at a time
         String line;
 
@@ -326,7 +326,7 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean sshStartServer(Collection<IECSNode> res) {
+    public boolean sshStartServer(Collection<IECSNode> res) {
     	for (IECSNode escn: res) {
         	System.out.println("Running SSH to start" + escn.getNodeName());
 //            Process proc;
@@ -345,7 +345,7 @@ public class ECS implements Watcher{
     }
 
 
-    private IECSNode randomlyPickOneAvailServer() {
+    public IECSNode randomlyPickOneAvailServer() {
         Random rand = new Random();
         int arr_size = this.availServers.size();
         if (arr_size == 0) {
@@ -357,7 +357,7 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean markServerUnavail(IECSNode escn) {
+    public boolean markServerUnavail(IECSNode escn) {
         // add escn to usedServer
         this.usedServers.add(escn);
         // remove escb from availServer
@@ -367,7 +367,7 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean markServeravail(IECSNode escn) {
+    public boolean markServeravail(IECSNode escn) {
         // add escn to usedServer
         this.availServers.add(escn);
         // remove escb from availServer
@@ -377,7 +377,7 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
+    public boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
         // Set attributes
     	((ECSNode)escn).cacheStrategy = cacheStrategy;
     	((ECSNode)escn).cacheSize = cacheSize;
@@ -410,7 +410,7 @@ public class ECS implements Watcher{
     	return true;
     }
     
-    private boolean removeZnode(IECSNode escn) {
+    public boolean removeZnode(IECSNode escn) {
     	String path = "/" + escn.getNodeName();
     	try {
 			this.zk.delete(path,zk.exists(path,true).getVersion());
@@ -424,7 +424,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean updateZnodeState(IECSNode escn, String state) {
+    public boolean updateZnodeState(IECSNode escn, String state) {
         // update znode
 //    	if (((ECSNode)escn).state == state) {
 //    		// Don't reupdate
@@ -456,7 +456,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
+    public boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
         // update znode
 //    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
 //    		return true;
@@ -487,7 +487,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
+    public boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
         // update znode
 //    	if(((ECSNode)escn).nameHash == nodeHash) {
 //    		return true;
@@ -518,7 +518,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean updateZnodeNodeTarget(IECSNode escn, String target) {
+    public boolean updateZnodeNodeTarget(IECSNode escn, String target) {
         // update znode
 //    	if(((ECSNode)escn).target == target) {
 //    		return true;
@@ -549,7 +549,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean addECSNodeToHashRing(IECSNode escn) {
+    public boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
         String nameHash = hasher.hashString(escn.getNodeName());
         ((ECSNode)escn).nameHash = nameHash;
@@ -578,7 +578,7 @@ public class ECS implements Watcher{
         return true;
     }
     
-    private boolean removeESCNodeFromHashRing(IECSNode escn) {
+    public boolean removeESCNodeFromHashRing(IECSNode escn) {
     	int i = 0;
     	while(i < this.hashRing.size()) {
     		HashRingEntry r = hashRing.get(i);
@@ -596,7 +596,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    private boolean recalculateHashRange() {
+    public boolean recalculateHashRange() {
         // find all escn entry in the Hash Ring
         int numRingEntry = this.hashRing.size();
         int i = 0;
@@ -632,20 +632,20 @@ public class ECS implements Watcher{
     }
 
 
-    private boolean startServer(IECSNode escn) {
+    public boolean startServer(IECSNode escn) {
     	((ECSNode)escn).state = "START";
     	return this.updateZnodeState(escn, "START");
     }
 
 
-    private boolean stopServer(IECSNode escn) {
+    public boolean stopServer(IECSNode escn) {
     	((ECSNode)escn).state = "STOP";
     	return this.updateZnodeState(escn, "STOP");
 
     }
 
 
-    private boolean shutdownServer(IECSNode escn) {
+    public boolean shutdownServer(IECSNode escn) {
         // Remove the node from hash ring
     	this.removeNode(escn);
     	// remove the znode
