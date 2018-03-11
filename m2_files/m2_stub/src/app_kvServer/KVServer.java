@@ -13,9 +13,6 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-
-import logger.LogSetup;
 
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
