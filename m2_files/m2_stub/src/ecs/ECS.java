@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 // Exception
 import java.io.FileNotFoundException;
@@ -150,9 +151,6 @@ public class ECS implements Watcher{
     public Collection<IECSNode> addNodes(int count, String cacheStrategy, int cacheSize) {
     	Collection<IECSNode> res = this.setupNodes(count, cacheStrategy, cacheSize);
  
-    	// Start SSH for res
-    	this.sshStartServer(res);
- 
         return res;
     }
 
@@ -174,15 +172,39 @@ public class ECS implements Watcher{
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
 
+        // SSH start server
+        status = this.sshStartServer(availServer);
+        
+        // Wait until it is added
+        try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+        
         // Add the ECSNode to the hashring
         status = this.addECSNodeToHashRing(availServer);
 
         // Configure the hash range of the node
         status = this.recalculateHashRange();
 
+        // Wait until the transfer is successful
+        status = this.waitTransfer();
+
         return availServer;
     }
     
+    public boolean waitTransfer() {
+    	try {
+    		System.out.println("Waiting transfer to be done");
+			Thread.sleep(1 * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    	return true;
+    }
+ 
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
         // Create IECSNodes for the servers, but do not issue the ssh call to start the processes. Should be invoked by addNodes
         ArrayList<IECSNode> res = new ArrayList<IECSNode>();
@@ -298,7 +320,8 @@ public class ECS implements Watcher{
                                          "",
                                          -1,
                                          "STOP",
-                                         "null");
+                                         "null",
+                                         "OFF");
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -326,7 +349,7 @@ public class ECS implements Watcher{
     }
 
 
-    public boolean sshStartServer(Collection<IECSNode> res) {
+    public boolean sshStartServers(Collection<IECSNode> res) {
     	for (IECSNode escn: res) {
         	System.out.println("Running SSH to start" + escn.getNodeName());
 //            Process proc;
@@ -341,6 +364,22 @@ public class ECS implements Watcher{
 //              return false;
 //            }	
     	}
+    	return true;
+    }
+
+    public boolean sshStartServer(IECSNode res) {
+        System.out.println("Running SSH to start" + res.getNodeName());
+//            Process proc;
+//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
+//            Runtime run = Runtime.getRuntime();
+    // 
+//            try {
+//              proc = run.exec(command);
+//              return true;
+//            } catch (IOException e) {
+//              e.printStackTrace();
+//              return false;
+//            }	
     	return true;
     }
 
@@ -473,6 +512,7 @@ public class ECS implements Watcher{
         jsonMessage.put("LeftHash", leftHash);
         jsonMessage.put("RightHash", rightHash);
         jsonMessage.put("Target", ((ECSNode)escn).target);
+        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -504,6 +544,7 @@ public class ECS implements Watcher{
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
         jsonMessage.put("Target", ((ECSNode)escn).target);
+        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -535,6 +576,39 @@ public class ECS implements Watcher{
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
         jsonMessage.put("Target", target);
+        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
+
+    public boolean updateZnodeNodeTransfer(IECSNode escn, String transfer) {
+        // update znode
+//    	if(((ECSNode)escn).target == target) {
+//    		return true;
+//    	}
+    	String zkPath = "/" + escn.getNodeName();
+    	JSONObject jsonMessage = new JSONObject();
+        jsonMessage.put("NodeName", escn.getNodeName());
+        jsonMessage.put("NodeHost", escn.getNodeHost());
+        jsonMessage.put("NodePort", escn.getNodePort());
+        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
+        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
+        jsonMessage.put("State", ((ECSNode)escn).state);
+        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
+        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
+        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
+        jsonMessage.put("Target", ((ECSNode)escn).target);
+        jsonMessage.put("Transfer", transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -570,11 +644,16 @@ public class ECS implements Watcher{
             }
             this.hashRing.add(i, ringEntry);
             int t = (i + 1)%(this.hashRing.size());
+            // Set target
             this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
             ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
+            // Set transfer to ON
+            this.updateZnodeNodeTransfer(hashRing.get(t).escn, "ON");
+            ((ECSNode)hashRing.get(t).escn).transfer = "ON"; 
+            this.updateZnodeNodeTransfer(hashRing.get(i).escn, "ON");
+            ((ECSNode)hashRing.get(i).escn).transfer = "ON";
         }
 
-        // recalculate the hash range
         return true;
     }
     
