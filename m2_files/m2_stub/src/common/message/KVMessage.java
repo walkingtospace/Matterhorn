@@ -15,6 +15,7 @@ public interface KVMessage {
 		DELETE,			/* Delete - request */
 		DELETE_SUCCESS, /* Delete - request successful */
 		DELETE_ERROR, 	/* Delete - request successful */
+		TRANSFER,
 
 		SERVER_STOPPED,         /* Server is stopped, no requests are processed */
 		SERVER_WRITE_LOCK,      /* Server locked for out, only get possible */

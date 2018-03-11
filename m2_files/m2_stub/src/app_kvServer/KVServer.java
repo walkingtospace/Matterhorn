@@ -134,27 +134,27 @@ public class KVServer implements IKVServer, Watcher {
         catch(SecurityException se){
             logger.error("Error! Can't create database folder");
         }
+        this.run();
         
         
-        
-        running = initializeServer();
-        if(serverSocket != null) {
-            while(running){
-                try {
-                    Socket client = serverSocket.accept();                
-                    ClientConnection connection = new ClientConnection(client, this);
-                    new Thread(connection).start();
-                    
-                    logger.info("Connected to " 
-                            + client.getInetAddress().getHostName() 
-                            +  " on port " + client.getPort());
-                } catch (IOException e) {
-                    logger.error("Error! " +
-                            "Unable to establish connection. \n", e);
-                }
-            }
-        }
-        logger.info("Server stopped.");
+//        running = initializeServer();
+//        if(serverSocket != null) {
+//            while(running){
+//                try {
+//                    Socket client = serverSocket.accept();                
+//                    ClientConnection connection = new ClientConnection(client, this);
+//                    new Thread(connection).start();
+//                    
+//                    logger.info("Connected to " 
+//                            + client.getInetAddress().getHostName() 
+//                            +  " on port " + client.getPort());
+//                } catch (IOException e) {
+//                    logger.error("Error! " +
+//                            "Unable to establish connection. \n", e);
+//                }
+//            }
+//        }
+//        logger.info("Server stopped.");
     }
     
     public List<MetaDataEntry> fillMetaData() throws IOException, KeeperException, InterruptedException {
@@ -295,8 +295,8 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
-    	if (writeLock == true)
-    		return;
+//    	if (writeLock == true)
+//    		return;
         if (cache != null) {
             if (value == cache.get(key)) {
                 // Update recency in case of LRU or count in case of LFU.
@@ -337,8 +337,8 @@ public class KVServer implements IKVServer, Watcher {
     
     @Override
 	public synchronized boolean deleteKV(String key) throws Exception{
-    	if (writeLock == true)
-    		return false;
+//    	if (writeLock == true)
+//    		return false;
 		boolean result = false;
     	if (inCache(key))
     		cache.delete(key);
@@ -440,12 +440,12 @@ public class KVServer implements IKVServer, Watcher {
     private JSONObject retrieveZnodeData(String nodeName) throws IOException, KeeperException, InterruptedException {
     	byte[] raw_data;
     	if (nodeName.equals("")) {
+    		raw_data = zk.getData(zkPath + nodeName, this, null);
+    	} else {
     		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
     		ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
     		raw_data = rootZk.getData(zkPath + nodeName, false, null);
     		rootZk.close();
-    	} else {
-    		raw_data = zk.getData(zkPath + nodeName, this, null);
     	}
     	String data = new String(raw_data);
     	
