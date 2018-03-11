@@ -14,7 +14,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+
 import org.apache.log4j.Logger;
+//import org.apache.log4j.Level;
+
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -65,13 +68,21 @@ public class KVServer implements IKVServer, Watcher {
 
     public KVServer(String name,
                     String zkHostname,
-                    int zkPort) throws KeeperException, InterruptedException, IOException {
+                    int zkPort) {
         /* KenNote: The func signature is different in M2 */
     	this.name = name;
-        this.dbPath += name + "/";
+        
         this.zkHostname = zkHostname;
         this.zkPort = zkPort;
-        
+        File dbDir = new File(dbPath);
+        try{
+            dbDir.mkdir();
+        }
+        catch(SecurityException se){
+//            logger.error("Error! Can't create database folder");
+        	System.out.println("Error! Can't create database folder");
+        }
+        this.dbPath += name + "/";
         try {
 			hasher = new MD5Hasher();
 		} catch (NoSuchAlgorithmException e) {
@@ -79,24 +90,38 @@ public class KVServer implements IKVServer, Watcher {
 		}
         
         String connection = zkHostname + ":" + Integer.toString(zkPort) + zkPath + name;
-        this.zk = new ZooKeeper(connection, 3000, this);
-    	
+        try {
+			this.zk = new ZooKeeper(connection, 3000, this);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
         
-        JSONObject jsonMessage = this.retrieveZnodeData("");
+        
+        JSONObject jsonMessage = null;
+		try {
+			jsonMessage = this.retrieveZnodeData("");
+		} catch (IOException | KeeperException | InterruptedException e) {
+			e.printStackTrace();
+		}
         
         state = (String) jsonMessage.get("State");
-        int cacheSize = Integer.parseInt((String)jsonMessage.get("CacheSize"));
-        String strategy = (String)jsonMessage.get("CacheStrategy");
+        int cacheSize = Integer.parseInt(jsonMessage.get("CacheSize").toString());
         
+        String strategy = (String)jsonMessage.get("CacheStrategy");
 
         MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-        
-        this.initKVServer(metaDataEntry, cacheSize, strategy);
+        try {
+			this.initKVServer(metaDataEntry, cacheSize, strategy);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
     }
     
     private MetaDataEntry fillUpMetaDataEntry(JSONObject jsonMessage) {
     	String serverHost = (String)jsonMessage.get("NodeHost");
-        int serverPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+        int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
 
@@ -129,29 +154,30 @@ public class KVServer implements IKVServer, Watcher {
             dbDir.mkdir();
         }
         catch(SecurityException se){
-            logger.error("Error! Can't create database folder");
+//            logger.error("Error! Can't create database folder");
+        	System.out.println("Error! Can't create database folder");
         }
+        this.run();
         
         
-        
-        running = initializeServer();
-        if(serverSocket != null) {
-            while(running){
-                try {
-                    Socket client = serverSocket.accept();                
-                    ClientConnection connection = new ClientConnection(client, this);
-                    new Thread(connection).start();
-                    
-                    logger.info("Connected to " 
-                            + client.getInetAddress().getHostName() 
-                            +  " on port " + client.getPort());
-                } catch (IOException e) {
-                    logger.error("Error! " +
-                            "Unable to establish connection. \n", e);
-                }
-            }
-        }
-        logger.info("Server stopped.");
+//        running = initializeServer();
+//        if(serverSocket != null) {
+//            while(running){
+//                try {
+//                    Socket client = serverSocket.accept();                
+//                    ClientConnection connection = new ClientConnection(client, this);
+//                    new Thread(connection).start();
+//                    
+//                    logger.info("Connected to " 
+//                            + client.getInetAddress().getHostName() 
+//                            +  " on port " + client.getPort());
+//                } catch (IOException e) {
+//                    logger.error("Error! " +
+//                            "Unable to establish connection. \n", e);
+//                }
+//            }
+//        }
+//        logger.info("Server stopped.");
     }
     
     public List<MetaDataEntry> fillMetaData() throws IOException, KeeperException, InterruptedException {
@@ -177,9 +203,10 @@ public class KVServer implements IKVServer, Watcher {
     // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
 		try {
-			if (args.length != 4) {
+			if (args.length != 3) {
 				System.out.println("Wrong number of arguments passed to server");
 			}
+//			new LogSetup("logs/server.log", Level.ALL);
 			String zkHostname = args[0];
 			int zkPort = Integer.parseInt(args[1]);
 			String name = args[2];
@@ -187,12 +214,10 @@ public class KVServer implements IKVServer, Watcher {
 //			String zkHostname = "0.0.0.0";
 //			int zkPort = 3100;
 			KVServer server = new KVServer(name, zkHostname, zkPort);
-			
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
 		}
 	}
-    
 
     
     public void test() {
@@ -292,8 +317,8 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public synchronized void putKV(String key, String value) throws Exception{
-    	if (writeLock == true)
-    		return;
+//    	if (writeLock == true)
+//    		return;
         if (cache != null) {
             if (value == cache.get(key)) {
                 // Update recency in case of LRU or count in case of LFU.
@@ -334,8 +359,8 @@ public class KVServer implements IKVServer, Watcher {
     
     @Override
 	public synchronized boolean deleteKV(String key) throws Exception{
-    	if (writeLock == true)
-    		return false;
+//    	if (writeLock == true)
+//    		return false;
 		boolean result = false;
     	if (inCache(key))
     		cache.delete(key);
@@ -369,7 +394,6 @@ public class KVServer implements IKVServer, Watcher {
     @Override
     public void run(){
         running = initializeServer();
-        
         if(serverSocket != null) {
             while(running){
                 try {
@@ -377,16 +401,22 @@ public class KVServer implements IKVServer, Watcher {
                     ClientConnection connection = new ClientConnection(client, this);
                     new Thread(connection).start();
                     
-                    logger.info("Connected to " 
+//                    logger.info("Connected to " 
+//                            + client.getInetAddress().getHostName() 
+//                            +  " on port " + client.getPort());
+                    System.out.println("Connected to " 
                             + client.getInetAddress().getHostName() 
                             +  " on port " + client.getPort());
                 } catch (IOException e) {
-                    logger.error("Error! " +
-                            "Unable to establish connection. \n", e);
+//                    logger.error("Error! " +
+//                            "Unable to establish connection. \n", e);
+                	System.out.println("Error! " +
+                            "Unable to establish connection. \n" + e);
                 }
             }
         }
-        logger.info("Server stopped.");
+//        logger.info("Server stopped.");
+        System.out.println("Server stopped.");
     }
 
 
@@ -403,13 +433,14 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public synchronized void start() {
+    public void start() {
+    	System.out.println("in start");
         this.state = "START";
     }
 
 
     @Override
-    public synchronized void stop() {
+    public void stop() {
     	this.state = "STOP";
     }
 
@@ -430,19 +461,19 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     @Override
-    public synchronized void update(MetaDataEntry metaDataEntry) {
+    public void update(MetaDataEntry metaDataEntry) {
     	this.metaDataEntry = metaDataEntry;
     }
 
     private JSONObject retrieveZnodeData(String nodeName) throws IOException, KeeperException, InterruptedException {
     	byte[] raw_data;
     	if (nodeName.equals("")) {
+    		raw_data = zk.getData(zkPath + nodeName, this, null);
+    	} else {
     		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
     		ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
     		raw_data = rootZk.getData(zkPath + nodeName, false, null);
     		rootZk.close();
-    	} else {
-    		raw_data = zk.getData(zkPath + nodeName, this, null);
     	}
     	String data = new String(raw_data);
     	
@@ -465,7 +496,7 @@ public class KVServer implements IKVServer, Watcher {
 	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
 	    	
 	    	migrationClient.connect();
-
+	    	migrationClient.enableTransfer();
 //	    	String maxHash = hasher.hashString("0");
 //	    	String minHash = hasher.hashString("FFFFFF");
 	    	File[] files = new File(dbPath).listFiles();
@@ -505,7 +536,7 @@ public class KVServer implements IKVServer, Watcher {
         jsonMessage.put("NodeHash", hasher.hashString(this.name));
         jsonMessage.put("LeftHash", this.metaDataEntry.leftHash);
         jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
-        jsonMessage.put("Target", "NULL");
+        jsonMessage.put("Target", "null");
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -556,17 +587,22 @@ public class KVServer implements IKVServer, Watcher {
 
 
     private boolean initializeServer() {
-        logger.info("Initialize server ...");
+//        logger.info("Initialize server ...");
+    	System.out.println("Initialize server ...");
         try {
             serverSocket = new ServerSocket(getPort());
-            logger.info("Server listening on port: " 
+            System.out.println("Server listening on port: " 
                     + serverSocket.getLocalPort());    
+//            logger.info("Server listening on port: " 
+//                    + serverSocket.getLocalPort());    
             return true;
         
         } catch (IOException e) {
-            logger.error("Error! Cannot open server socket:");
+//            logger.error("Error! Cannot open server socket:");
+        	System.out.println("Error! Cannot open server socket:");
             if(e instanceof BindException){
-                logger.error("Port " + getPort() + " is already bound!");
+//                logger.error("Port " + getPort() + " is already bound!");
+            	System.out.println("Port " + getPort() + " is already bound!");
             }
             return false;
         }
@@ -574,7 +610,7 @@ public class KVServer implements IKVServer, Watcher {
 
 	@Override
 	public void process(WatchedEvent event) {
-		
+		System.out.println("triggered");
 		JSONObject jsonMessage;
 		try {
 			jsonMessage = this.retrieveZnodeData("");
@@ -582,23 +618,29 @@ public class KVServer implements IKVServer, Watcher {
 			e1.printStackTrace();
 			return;
 		}
-        
+		
+        System.out.println(jsonMessage.toString());
 		EventType type = event.getType();
+		System.out.println(type);
 		switch (type) {
 			case NodeDataChanged:
-//				if (event.getPath().equals(this.zkPath + this.name)) {
+				String state = (String) jsonMessage.get("State");
 				String targetName = (String) jsonMessage.get("Target");
+				if (state.equals("START")) {
+					this.start();
+				} else if (state.equals("STOP")) {
+					this.stop();
+				}
 				
 				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
 				this.update(metaDataEntry);
-				if (!targetName.equals("NULL")) {
+				if (!targetName.equals("null")) {
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
 					boolean result;
 					try {
 						this.lockWrite();
 						result = this.moveData(hashRange, targetName);
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 						return;
 					}
@@ -621,6 +663,7 @@ public class KVServer implements IKVServer, Watcher {
 			default:
                 break;
 		}
+		System.out.println("done trigger");
 		
 	}
 }

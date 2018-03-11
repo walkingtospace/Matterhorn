@@ -70,13 +70,11 @@ public class ClientConnection implements Runnable {
                     String key = null;
                     String value = null;
                     List<MetaDataEntry> metaData = null;
+                    StatusType operation = latestMsg.getStatus();
                     StatusType status = StatusType.PUT_SUCCESS;
-                    if (kvServer.getState().equals("STOP")) {
+                    if (kvServer.getState().equals("STOP") && operation != StatusType.TRANSFER) {
                     	status = StatusType.SERVER_STOPPED;
-                    } else if (kvServer.getState().equals("START")) {
-	                    StatusType operation = latestMsg.getStatus();
-	                    
-	                    
+                    } else if (kvServer.getState().equals("START") || operation == StatusType.TRANSFER) {
 	                    switch (operation) {
 	                        case PUT:
 	                            key = latestMsg.getKey();
@@ -148,14 +146,23 @@ public class ClientConnection implements Runnable {
 	                                status = StatusType.DELETE_ERROR;
 	                            }
 	                            break;
+	                        case TRANSFER:
+	                        	key = latestMsg.getKey();
+	                            value = latestMsg.getValue();
+								try {
+									kvServer.putKV(key, value);
+								} catch (Exception e) {
+									logger.error("Error! Unable to PUT key-value pair!", e);
+	                                status = StatusType.PUT_ERROR;
+								}
+	                        	break;
 	                        default:
 	                            break;
 	                    }
                     }
                     TextMessage resultMsg;
                     if (metaData == null) {
-	                    resultMsg = new TextMessage(status, key, value);
-	                    
+	                    resultMsg = new TextMessage(status, key, value);       
                     } else {
                     	resultMsg = new TextMessage(status, key, value, metaData);
                     }

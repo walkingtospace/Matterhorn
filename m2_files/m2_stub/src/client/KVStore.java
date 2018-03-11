@@ -36,6 +36,7 @@ public class KVStore implements KVCommInterface {
     private Logger logger = Logger.getRootLogger();
     private MD5Hasher hasher;
     private HashSet<StatusType> retryStatuses;
+    private volatile boolean isTransfer; 
 
     private static final int BUFFER_SIZE = 1024;
     private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
@@ -50,6 +51,7 @@ public class KVStore implements KVCommInterface {
         retryStatuses.add(StatusType.SERVER_NOT_RESPONSIBLE);
         retryStatuses.add(StatusType.SERVER_STOPPED);
         retryStatuses.add(StatusType.SERVER_WRITE_LOCK);
+        isTransfer = false;
     }
 
     @Override
@@ -83,13 +85,25 @@ public class KVStore implements KVCommInterface {
     public KVMessage put(String key, String value) throws Exception {
         // Create Request
         TextMessage req = null;
-        if (value != "" && value != null) {
-            req = new TextMessage("PUT", key, value);
+        if (!isTransfer) {
+	        if (value != "" && value != null) {
+	            req = new TextMessage("PUT", key, value);
+	        } else {
+	            req = new TextMessage("DELETE", key, value);
+	        }
         } else {
-            req = new TextMessage("DELETE", key, value);
+        	req = new TextMessage("TRANSFER", key, value);
         }
         return serverRequest(key, req);
     }
+    
+    public void enableTransfer() {
+    	this.isTransfer = true;
+    }
+    
+//    public void disableTransfer() {
+//    	this.isTransfer = false;
+//    }
 
     @Override
     public KVMessage get(String key) throws Exception {
