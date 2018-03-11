@@ -7,6 +7,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +29,8 @@ public class KVStore implements KVCommInterface {
      * @param port the port of the KVServer
      */
 	
+	private String initial_address;
+	private int initial_port;
     private TreeMap<String, MetaDataEntry> metaData;
     private HashMap<AddressKey, Socket> socketMap;
     private Logger logger = Logger.getRootLogger();
@@ -41,8 +44,8 @@ public class KVStore implements KVCommInterface {
     private static final int RETRY_SLEEP_MS = 50;
     
     public KVStore(String input_address, int input_port) throws IOException, NoSuchAlgorithmException {
-        metaData = initializeMetadata(input_address, input_port);
-        socketMap.put(new AddressKey(input_address, input_port), new Socket(input_address, input_port));
+    	initial_address = input_address;
+    	initial_port = input_port;
         hasher = new MD5Hasher();
         retryStatuses = new HashSet<StatusType>();
         retryStatuses.add(StatusType.SERVER_NOT_RESPONSIBLE);
@@ -53,7 +56,8 @@ public class KVStore implements KVCommInterface {
 
     @Override
     public void connect() throws UnknownHostException, IOException {
-        logger.info("Connect is delayed until attempted operation.");
+    	metaData = initializeMetadata(initial_address, initial_port);
+        socketMap.put(new AddressKey(initial_address, initial_port), new Socket(initial_address, initial_port));
     }
 
     @Override
@@ -74,8 +78,7 @@ public class KVStore implements KVCommInterface {
 
     @Override
     public boolean isConnected() {
-        /* KenNote: New function that needs to be implemented */
-        return false;
+        return socketMap != null && socketMap.size() > 0;
     }
 
     @Override
@@ -172,7 +175,18 @@ public class KVStore implements KVCommInterface {
     private TreeMap<String, MetaDataEntry> buildTreeMap(List<MetaDataEntry> metaDataList) {
     	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
     	for (MetaDataEntry entry : metaDataList) {
+    		this.metaData.remove(entry.rightHash);
     		metaData.put(entry.rightHash, entry);
+    	}
+    	// Close connections to servers that are no longer running.
+    	for (Map.Entry<String, MetaDataEntry> entry : this.metaData.entrySet()) {
+    		AddressKey removedServerAddr = new AddressKey(entry.getValue().serverHost, entry.getValue().serverPort);
+    		try {
+    			socketMap.get(removedServerAddr).close();
+    		} catch(IOException e) {
+    			logger.error("Unable to close connection");
+    		}
+    		socketMap.remove(removedServerAddr);
     	}
     	return metaData;
     }
