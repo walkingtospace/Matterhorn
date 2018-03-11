@@ -148,7 +148,7 @@ public class KVServer implements IKVServer, Watcher {
     	this.cacheSize = cacheSize;
         this.strategy = CacheStrategy.valueOf(strategy);
         this.cache = createCache(this.strategy);
-        
+        	
         File dbDir = new File(dbPath);
         try{
             dbDir.mkdir();
@@ -434,7 +434,6 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void start() {
-    	System.out.println("in start");
         this.state = "START";
     }
 
@@ -446,17 +445,17 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public synchronized void lockWrite() {
+    public void lockWrite() {
     	writeLock = true;
     }
 
 
     @Override
-    public synchronized void unlockWrite() {
+    public void unlockWrite() {
     	writeLock = false;
     }
     
-    public synchronized boolean isLocked() {
+    public boolean isLocked() {
     	return writeLock;
     }
     
@@ -488,13 +487,14 @@ public class KVServer implements IKVServer, Watcher {
     	JSONObject jsonMessage;
 		try {
 			jsonMessage = retrieveZnodeData(targetName);
+			
 			String targetServerHost = (String) jsonMessage.get("NodeHost");
-	        int targetServerPort = Integer.parseInt((String)jsonMessage.get("NodePort"));
+	        int targetServerPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
 	    	
 //	    	List<String> list = zk.getChildren(zkPath, true);
-	    	
+	        System.out.println(targetServerHost + " " + targetServerPort);
 	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
-	    	
+	    	System.out.println("pass migrationClient constructor");
 	    	migrationClient.connect();
 	    	migrationClient.enableTransfer();
 //	    	String maxHash = hasher.hashString("0");
@@ -519,6 +519,7 @@ public class KVServer implements IKVServer, Watcher {
 	        migrationClient.disconnect();
 	        this.notifyECS();
 		} catch (Exception e) {
+			System.out.println("moveData exception");
 			e.printStackTrace();
 			return false;
 		}
@@ -634,18 +635,18 @@ public class KVServer implements IKVServer, Watcher {
 				
 				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
 				this.update(metaDataEntry);
+				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
 				if (!targetName.equals("null")) {
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
 					boolean result;
 					try {
 						this.lockWrite();
 						result = this.moveData(hashRange, targetName);
+						if (result) {
+							this.unlockWrite();
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
-						return;
-					}
-					if (result) {
-						this.unlockWrite();
 					}
 //					}
 //					if (hasher.compareHash(leftHash, metaDataEntry.leftHash) != 0 || hasher.compareHash(rightHash, metaDataEntry.rightHash) != 0) {
