@@ -45,7 +45,7 @@ public class ECS implements Watcher{
     private HashMap<String, IECSNode> escnMap;
     private MD5Hasher hasher;
     private static final String zkHost = "0.0.0.0";
-    private static final int zkPort = 2181;
+    private static final int zkPort = 3200;
     private ZooKeeper zk;
 
     
@@ -441,7 +441,7 @@ public class ECS implements Watcher{
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("target", ((ECSNode)escn).target);
+        jsonMessage.put("Target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -472,7 +472,7 @@ public class ECS implements Watcher{
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", leftHash);
         jsonMessage.put("RightHash", rightHash);
-        jsonMessage.put("target", ((ECSNode)escn).target);
+        jsonMessage.put("Target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -503,7 +503,7 @@ public class ECS implements Watcher{
         jsonMessage.put("NodeHash", nodeHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("target", ((ECSNode)escn).target);
+        jsonMessage.put("Target", ((ECSNode)escn).target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
@@ -534,7 +534,7 @@ public class ECS implements Watcher{
         jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("target", target);
+        jsonMessage.put("Target", target);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
