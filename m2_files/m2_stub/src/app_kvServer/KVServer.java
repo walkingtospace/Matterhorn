@@ -614,6 +614,24 @@ public class KVServer implements IKVServer, Watcher {
             return false;
         }
     }
+    
+    private void deleteOutOfRangeKey() {
+    	File[] files = new File(dbPath).listFiles();
+        for (File file: files) {
+        	String fileName = file.toString();
+            if (fileName.endsWith(".kv")) {
+                String key = fileName.substring(0, fileName.length() - 3);
+            	try {
+					if (!this.isKeyInRange(key)) {
+						this.deleteKV(key);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+                
+            }
+        }
+    }
 
 	@Override
 	public void process(WatchedEvent event) {
@@ -665,6 +683,7 @@ public class KVServer implements IKVServer, Watcher {
 					this.update(metaDataEntry);
 					System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
 //					this.writeLock = false;
+					this.deleteOutOfRangeKey();
 					this.notifyECS(targetName);
 				}
 				
