@@ -98,9 +98,9 @@ public class KVStore implements KVCommInterface {
     	this.isTransfer = true;
     }
     
-    public void disableTransfer() {
-    	this.isTransfer = false;
-    }
+//    public void disableTransfer() {
+//    	this.isTransfer = false;
+//    }
 
     @Override
     public KVMessage get(String key) throws Exception {

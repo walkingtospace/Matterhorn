@@ -468,7 +468,7 @@ public class KVServer implements IKVServer, Watcher {
 	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
 	    	
 	    	migrationClient.connect();
-
+	    	migrationClient.enableTransfer();
 //	    	String maxHash = hasher.hashString("0");
 //	    	String minHash = hasher.hashString("FFFFFF");
 	    	File[] files = new File(dbPath).listFiles();
