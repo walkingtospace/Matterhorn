@@ -180,12 +180,15 @@ public class KVStore implements KVCommInterface {
     	// Close connections to servers that are no longer running.
     	for (Map.Entry<String, MetaDataEntry> entry : this.metaData.entrySet()) {
     		AddressKey removedServerAddr = new AddressKey(entry.getValue().serverHost, entry.getValue().serverPort);
-    		try {
-    			socketMap.get(removedServerAddr).close();
-    		} catch(IOException e) {
-    			logger.error("Unable to close connection");
+    		Socket removedServerConn = socketMap.get(removedServerAddr);
+    		if (removedServerConn != null) {
+	    		try {
+	    			removedServerConn.close();
+	    		} catch(IOException e) {
+	    			logger.error("Unable to close connection");
+	    		}
+	    		socketMap.remove(removedServerAddr);
     		}
-    		socketMap.remove(removedServerAddr);
     	}
     	return metaData;
     }
