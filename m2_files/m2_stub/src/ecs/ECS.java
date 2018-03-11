@@ -264,8 +264,43 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-    	//System.out.println("Trigger Event from ZK");
-        return;
+		System.out.println("triggered");
+		// Check which node has target
+		String path = event.getPath();
+		JSONObject jsonMessage = this.getJSON(path.substring(1,path.length()));
+        String targetname = (String)jsonMessage.get("Target");
+        String transfer = (String)jsonMessage.get("Transfer");
+        if (!targetname.equals("null") && transfer.equals("OFF")) {
+        	JSONObject jsonMessageTarget = this.getJSON(targetname);
+        	String transferTarget = (String)jsonMessage.get("Transfer");
+        	if (transferTarget.equals("ON")) {
+        		IECSNode sender = this.getNodeByKey(path);
+        		IECSNode receiver = this.getNodeByKey(transferTarget);
+        		this.updateZnodeNodeTarget(sender, "null");
+        		this.updateZnodeNodeTransfer(receiver, "OFF");
+        	}
+        }
+    }
+    
+    public JSONObject getJSON(String nodename) {
+		byte[] raw_data = null;
+		try {
+			raw_data = this.zk.getData("/" + nodename, this, null);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		String jsonstr = new String(raw_data);
+		JSONObject jsonMessage = null;
+        JSONParser parser = new JSONParser();
+        try {
+            jsonMessage = (JSONObject) parser.parse(jsonstr);
+            return jsonMessage;
+        } catch (ParseException e) {
+        	e.printStackTrace();
+        	return null;
+        }
     }
 
     public void printHashRing() {
@@ -370,18 +405,18 @@ public class ECS implements Watcher{
 
     public boolean sshStartServer(IECSNode res) {
         System.out.println("Running SSH to start" + res.getNodeName());
-//            Process proc;
-//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-//            Runtime run = Runtime.getRuntime();
-    // 
-//            try {
-//              proc = run.exec(command);
-//              return true;
-//            } catch (IOException e) {
-//              e.printStackTrace();
-//              return false;
-//            }	
-    	return true;
+        Process proc;
+        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
+        String command = "java -jar m2-server.jar 0.0.0.0 3200 &";
+        Runtime run = Runtime.getRuntime();
+ 
+        try {
+          proc = run.exec(command);
+          return true;
+        } catch (IOException e) {
+          e.printStackTrace();
+          return false;
+        }	
     }
 
 
