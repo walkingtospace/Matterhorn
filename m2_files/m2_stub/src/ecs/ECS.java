@@ -276,7 +276,9 @@ public class ECS implements Watcher{
         	if (transferTarget.equals("ON")) {
         		IECSNode sender = this.getNodeByKey(path);
         		IECSNode receiver = this.getNodeByKey(transferTarget);
+        		((ECSNode)sender).target = "null";
         		this.updateZnodeNodeTarget(sender, "null");
+        		((ECSNode)receiver).transfer = "OFF";
         		this.updateZnodeNodeTransfer(receiver, "OFF");
         	}
         }
