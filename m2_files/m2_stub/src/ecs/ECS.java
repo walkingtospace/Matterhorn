@@ -239,6 +239,7 @@ public class ECS implements Watcher{
     public boolean removeNode(IECSNode ecsn) {
     	this.removeESCNodeFromHashRing(ecsn);
     	this.recalculateHashRange();
+    	this.waitTransfer();
     	return true;
     }
  
@@ -666,9 +667,20 @@ public class ECS implements Watcher{
     		if (r.escn.getNodeName() == escn.getNodeName()) {
     			// found the ring entry
     			IECSNode e = r.escn;
+    			int t = (i + 1) % (this.hashRing.size()); // next node
+    			IECSNode te = this.hashRing.get(t).escn;
+    			// update the znode left and right hash
     			((ECSNode)e).leftHash = "-1";
     			((ECSNode)e).rightHash = "-1";
     			this.updateZnodeHash(e, "-1", "-1");
+    			// update the nodes target and transfer
+    			((ECSNode)e).transfer = "ON";
+    			((ECSNode)te).transfer = "ON";
+    			this.updateZnodeNodeTransfer(e, "ON");
+    			this.updateZnodeNodeTransfer(te, "ON");
+    			((ECSNode)e).target = te.getNodeName();
+    			this.updateZnodeNodeTarget(e, te.getNodeName());
+    			// remove from hash ring
     			this.hashRing.remove(i);
     			return true;
     		}
