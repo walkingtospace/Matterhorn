@@ -177,7 +177,8 @@ public class ECS implements Watcher{
         
         // Wait until it is added
         try {
-			Thread.sleep(1000);
+        	System.out.println("waiting to start server manually");
+			Thread.sleep(20000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

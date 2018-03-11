@@ -162,27 +162,7 @@ public class KVServer implements IKVServer, Watcher {
 //            logger.error("Error! Can't create database folder");
         	System.out.println("Error! Can't create database folder");
         }
-        this.run();
-        
-        
-//        running = initializeServer();
-//        if(serverSocket != null) {
-//            while(running){
-//                try {
-//                    Socket client = serverSocket.accept();                
-//                    ClientConnection connection = new ClientConnection(client, this);
-//                    new Thread(connection).start();
-//                    
-//                    logger.info("Connected to " 
-//                            + client.getInetAddress().getHostName() 
-//                            +  " on port " + client.getPort());
-//                } catch (IOException e) {
-//                    logger.error("Error! " +
-//                            "Unable to establish connection. \n", e);
-//                }
-//            }
-//        }
-//        logger.info("Server stopped.");
+//        this.run();
     }
     
     public List<MetaDataEntry> fillMetaData() throws IOException, KeeperException, InterruptedException {
@@ -191,16 +171,19 @@ public class KVServer implements IKVServer, Watcher {
     	ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
     	List<String> zNodes = rootZk.getChildren(zkPath, false);
     	for (String zNode: zNodes) {
-
-    		byte[] raw_data = rootZk.getData(zkPath + zNode, false, null);
-            String data = new String(raw_data);
-            
-            JSONObject jsonMessage = decodeJsonStr(data);
-            
-            
-            
-            MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-            metaData.add(nodeMetaDataEntry);
+    		if (!zNode.equals("zookeeper")) {
+    			System.out.println("znode: " + zNode);
+        		byte[] raw_data = rootZk.getData(zkPath + zNode, false, null);
+                String data = new String(raw_data);
+                
+                JSONObject jsonMessage = decodeJsonStr(data);
+                System.out.println("in fillMetaData");
+                System.out.println(jsonMessage.toString());
+                
+                
+                MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
+                metaData.add(nodeMetaDataEntry);
+    		}
     	}
     	return metaData;
     }
@@ -219,15 +202,11 @@ public class KVServer implements IKVServer, Watcher {
 //			String zkHostname = "0.0.0.0";
 //			int zkPort = 3100;
 			KVServer server = new KVServer(name, zkHostname, zkPort);
+			server.run();
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
 		}
 	}
-
-    
-    public void test() {
-    	
-    }
 
 
 
@@ -472,7 +451,7 @@ public class KVServer implements IKVServer, Watcher {
     private JSONObject retrieveZnodeData(String nodeName) throws IOException, KeeperException, InterruptedException {
     	byte[] raw_data;
     	if (nodeName.equals("")) {
-    		raw_data = zk.getData(zkPath + nodeName, this, null);
+    		raw_data = zk.getData(zkPath, this, null);
     	} else {
     		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
     		ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
@@ -505,12 +484,14 @@ public class KVServer implements IKVServer, Watcher {
 //	    	String maxHash = hasher.hashString("0");
 //	    	String minHash = hasher.hashString("FFFFFF");
 	    	File[] files = new File(dbPath).listFiles();
+	    	System.out.println("size of db: " + files.length);
 	        for (File file: files) {
-	        	String fileName = file.toString();
+	        	String fileName = file.getName();
 	            if (fileName.endsWith(".kv")) {
+	            	System.out.println("file in moveData: " + fileName);
 	                String key = fileName.substring(0, fileName.length() - 3);
 	                String hashedKey = hasher.hashString(key);
-	                
+	                System.out.println("key in moveData " + key);
 	                // special case: hashRange across starting of the ring or end of the ring
 	                if ((hasher.compareHash(hashedKey, hashRange[0]) == -1) || (hasher.compareHash(hashedKey, hashRange[0]) == 0)
 	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))
@@ -518,16 +499,18 @@ public class KVServer implements IKVServer, Watcher {
 	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
 	                	String value = getValueFromFile(dbPath + fileName);
 	                	migrationClient.put(key, value);
+//	                	this.deleteKV(key);
 	                }
 	            }
 	        }
 	        migrationClient.disconnect();
-	        
+	        System.out.println("after disconnect");
 		} catch (Exception e) {
 			System.out.println("moveData exception");
 			e.printStackTrace();
 			return false;
 		}
+		System.out.println("finish moveData");
         return true;
     }
     
@@ -544,9 +527,12 @@ public class KVServer implements IKVServer, Watcher {
         jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
         jsonMessage.put("Target", target);
         jsonMessage.put("Transfer", "OFF");
+//        System.out.println("in notfiyECS");
+//        System.out.println(jsonMessage.toString());
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
-			this.zk.setData(zkPath + this.name, zkData, this.zk.exists(zkPath + this.name, true).getVersion());
+//        	this.zk.exists(zkPath, true).getVersion()
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException | InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -618,9 +604,10 @@ public class KVServer implements IKVServer, Watcher {
     private void deleteOutOfRangeKey() {
     	File[] files = new File(dbPath).listFiles();
         for (File file: files) {
-        	String fileName = file.toString();
+        	String fileName = file.getName();
             if (fileName.endsWith(".kv")) {
                 String key = fileName.substring(0, fileName.length() - 3);
+                System.out.println("key in delete: " + key);
             	try {
 					if (!this.isKeyInRange(key)) {
 						this.deleteKV(key);
@@ -652,6 +639,7 @@ public class KVServer implements IKVServer, Watcher {
 				String state = (String) jsonMessage.get("State");
 				String targetName = (String) jsonMessage.get("Target");
 				String transferState = (String) jsonMessage.get("Transfer");
+				System.out.println(transferState);
 				if (state.equals("START")) {
 					this.start();
 				} else if (state.equals("STOP")) {
@@ -663,8 +651,7 @@ public class KVServer implements IKVServer, Watcher {
 					this.unlockWrite();
 				}
 				
-				
-				if (!targetName.equals("null")) {
+				if (!targetName.equals("null") && transferState.equals("ON")) {
 //					this.writeLock = true;
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
 					boolean result;
