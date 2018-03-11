@@ -494,8 +494,8 @@ public class KVServer implements IKVServer, Watcher {
 //	    	List<String> list = zk.getChildren(zkPath, true);
 	        System.out.println(targetServerHost + " " + targetServerPort);
 	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
-	    	System.out.println("pass migrationClient constructor");
 	    	migrationClient.connect();
+	    	System.out.println("pass migrationClient connect");
 	    	migrationClient.enableTransfer();
 //	    	String maxHash = hasher.hashString("0");
 //	    	String minHash = hasher.hashString("FFFFFF");
