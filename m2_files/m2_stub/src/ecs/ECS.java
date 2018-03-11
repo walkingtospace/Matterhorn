@@ -240,6 +240,7 @@ public class ECS implements Watcher{
     public boolean removeNode(IECSNode ecsn) {
     	this.removeESCNodeFromHashRing(ecsn);
     	this.recalculateHashRange();
+    	this.waitTransfer();
     	return true;
     }
  
@@ -264,8 +265,45 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-    	//System.out.println("Trigger Event from ZK");
-        return;
+		System.out.println("triggered");
+		// Check which node has target
+		String path = event.getPath();
+		JSONObject jsonMessage = this.getJSON(path.substring(1,path.length()));
+        String targetname = (String)jsonMessage.get("Target");
+        String transfer = (String)jsonMessage.get("Transfer");
+        if (!targetname.equals("null") && transfer.equals("OFF")) {
+        	JSONObject jsonMessageTarget = this.getJSON(targetname);
+        	String transferTarget = (String)jsonMessage.get("Transfer");
+        	if (transferTarget.equals("ON")) {
+        		IECSNode sender = this.getNodeByKey(path);
+        		IECSNode receiver = this.getNodeByKey(transferTarget);
+        		((ECSNode)sender).target = "null";
+        		this.updateZnodeNodeTarget(sender, "null");
+        		((ECSNode)receiver).transfer = "OFF";
+        		this.updateZnodeNodeTransfer(receiver, "OFF");
+        	}
+        }
+    }
+    
+    public JSONObject getJSON(String nodename) {
+		byte[] raw_data = null;
+		try {
+			raw_data = this.zk.getData("/" + nodename, this, null);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		String jsonstr = new String(raw_data);
+		JSONObject jsonMessage = null;
+        JSONParser parser = new JSONParser();
+        try {
+            jsonMessage = (JSONObject) parser.parse(jsonstr);
+            return jsonMessage;
+        } catch (ParseException e) {
+        	e.printStackTrace();
+        	return null;
+        }
     }
 
     public void printHashRing() {
@@ -370,18 +408,18 @@ public class ECS implements Watcher{
 
     public boolean sshStartServer(IECSNode res) {
         System.out.println("Running SSH to start" + res.getNodeName());
-//            Process proc;
-//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-//            Runtime run = Runtime.getRuntime();
-    // 
-//            try {
-//              proc = run.exec(command);
-//              return true;
-//            } catch (IOException e) {
-//              e.printStackTrace();
-//              return false;
-//            }	
-    	return true;
+        Process proc;
+        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
+        String command = "java -jar m2-server.jar 0.0.0.0 3200 &";
+        Runtime run = Runtime.getRuntime();
+ 
+        try {
+          proc = run.exec(command);
+          return true;
+        } catch (IOException e) {
+          e.printStackTrace();
+          return false;
+        }	
     }
 
 
@@ -667,9 +705,20 @@ public class ECS implements Watcher{
     		if (r.escn.getNodeName() == escn.getNodeName()) {
     			// found the ring entry
     			IECSNode e = r.escn;
+    			int t = (i + 1) % (this.hashRing.size()); // next node
+    			IECSNode te = this.hashRing.get(t).escn;
+    			// update the znode left and right hash
     			((ECSNode)e).leftHash = "-1";
     			((ECSNode)e).rightHash = "-1";
     			this.updateZnodeHash(e, "-1", "-1");
+    			// update the nodes target and transfer
+    			((ECSNode)e).transfer = "ON";
+    			((ECSNode)te).transfer = "ON";
+    			this.updateZnodeNodeTransfer(e, "ON");
+    			this.updateZnodeNodeTransfer(te, "ON");
+    			((ECSNode)e).target = te.getNodeName();
+    			this.updateZnodeNodeTarget(e, te.getNodeName());
+    			// remove from hash ring
     			this.hashRing.remove(i);
     			return true;
     		}
