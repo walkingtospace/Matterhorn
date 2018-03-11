@@ -77,7 +77,7 @@ public class KVStore implements KVCommInterface {
 
     @Override
     public boolean isConnected() {
-        return socketMap != null && socketMap.size() > 0;
+        return socketMap.size() > 0;
     }
 
     @Override
