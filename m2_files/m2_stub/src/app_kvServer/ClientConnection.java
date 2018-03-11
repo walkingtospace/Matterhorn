@@ -64,6 +64,8 @@ public class ClientConnection implements Runnable {
                 try {
                     TextMessage latestMsg = receiveMessage();
                     
+                    System.out.println(latestMsg.getMsg());
+                    
                     if (latestMsg.getMsg().trim().length() == 0) {
                         throw new IOException();
                     }
@@ -72,9 +74,13 @@ public class ClientConnection implements Runnable {
                     List<MetaDataEntry> metaData = null;
                     StatusType operation = latestMsg.getStatus();
                     StatusType status = StatusType.PUT_SUCCESS;
-                    if (kvServer.getState().equals("STOP") && operation != StatusType.TRANSFER) {
+                    String state = kvServer.getState();
+                    
+                    System.out.println(state);
+                    
+                    if (state.equals("STOP") && operation != StatusType.TRANSFER) {
                     	status = StatusType.SERVER_STOPPED;
-                    } else if (kvServer.getState().equals("START") || operation == StatusType.TRANSFER) {
+                    } else if (state.equals("START") || operation == StatusType.TRANSFER) {
 	                    switch (operation) {
 	                        case PUT:
 	                            key = latestMsg.getKey();
@@ -84,10 +90,16 @@ public class ClientConnection implements Runnable {
 	                                status = StatusType.PUT_ERROR;
 	                                break;
 	                            }
+	                            
+	                            System.out.println(kvServer.isLocked());
+	                            
 	                            if (kvServer.isLocked()) {
 	                            	status = StatusType.SERVER_WRITE_LOCK;
 	                            	break;
 	                            }
+	                            
+	                            System.out.println(kvServer.isKeyInRange(key));
+	                            
 	                            if (!kvServer.isKeyInRange(key)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
 	                        		metaData = kvServer.fillMetaData();
@@ -166,6 +178,10 @@ public class ClientConnection implements Runnable {
                     } else {
                     	resultMsg = new TextMessage(status, key, value, metaData);
                     }
+                    
+                    System.out.println("before send result");
+                    System.out.println(resultMsg.getMsg());
+                    
                     sendMessage(resultMsg);
                 /* connection either terminated by the client or lost due to 
                  * network problems*/   

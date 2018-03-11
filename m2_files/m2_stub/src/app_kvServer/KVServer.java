@@ -59,7 +59,7 @@ public class KVServer implements IKVServer, Watcher {
     
     private MetaDataEntry metaDataEntry;
     private String name;
-    private boolean writeLock;
+    private volatile boolean writeLock;
     
     private volatile String state;
     
@@ -104,7 +104,12 @@ public class KVServer implements IKVServer, Watcher {
 			e.printStackTrace();
 		}
         
-        state = (String) jsonMessage.get("State");
+        this.state = (String) jsonMessage.get("State");
+        if (jsonMessage.get("Transfer").toString().equals("ON")) {
+        	this.lockWrite();
+        } else {
+        	this.unlockWrite();
+        }
         int cacheSize = Integer.parseInt(jsonMessage.get("CacheSize").toString());
         
         String strategy = (String)jsonMessage.get("CacheStrategy");
@@ -142,7 +147,7 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     
-    public synchronized void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) throws KeeperException, InterruptedException {
+    public void initKVServer(MetaDataEntry metaDataEntry, int cacheSize, String strategy) throws KeeperException, InterruptedException {
     	
     	this.metaDataEntry = metaDataEntry;
     	this.cacheSize = cacheSize;
@@ -249,12 +254,12 @@ public class KVServer implements IKVServer, Watcher {
         return this.cacheSize;
     }
 
-    public synchronized String getState() {
+    public String getState() {
     	return this.state;
     }
     
     @Override
-    public synchronized boolean inStorage(String key){
+    public boolean inStorage(String key){
         boolean result = false;
         key += ".kv";
         File kvFile = new File(dbPath + key);
@@ -266,7 +271,7 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public synchronized boolean inCache(String key){
+    public boolean inCache(String key){
         if (cache != null && cache.get(key) != null) {
             return true;
         }
@@ -275,7 +280,7 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public synchronized String getKV(String key) throws Exception{
+    public String getKV(String key) throws Exception{
     	String value = null;
         if (cache != null) {
             value = cache.get(key);
@@ -316,7 +321,7 @@ public class KVServer implements IKVServer, Watcher {
     }
 
     @Override
-    public synchronized void putKV(String key, String value) throws Exception{
+    public void putKV(String key, String value) throws Exception{
 //    	if (writeLock == true)
 //    		return;
         if (cache != null) {
@@ -358,7 +363,7 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     @Override
-	public synchronized boolean deleteKV(String key) throws Exception{
+	public boolean deleteKV(String key) throws Exception{
 //    	if (writeLock == true)
 //    		return false;
 		boolean result = false;
@@ -375,13 +380,13 @@ public class KVServer implements IKVServer, Watcher {
 
 
     @Override
-    public synchronized void clearCache(){
+    public void clearCache(){
         cache = createCache(strategy);
     }
 
 
     @Override
-    public synchronized void clearStorage(){
+    public void clearStorage(){
         File[] files = new File(dbPath).listFiles();
         for (File file: files) {
             if (file.toString().endsWith(".kv")) {
@@ -517,7 +522,7 @@ public class KVServer implements IKVServer, Watcher {
 	            }
 	        }
 	        migrationClient.disconnect();
-	        this.notifyECS();
+	        
 		} catch (Exception e) {
 			System.out.println("moveData exception");
 			e.printStackTrace();
@@ -526,21 +531,22 @@ public class KVServer implements IKVServer, Watcher {
         return true;
     }
     
-    private void notifyECS() {
+    private void notifyECS(String target) {
     	JSONObject jsonMessage = new JSONObject();
         jsonMessage.put("NodeName", this.name);
         jsonMessage.put("NodeHost", this.metaDataEntry.serverHost);
         jsonMessage.put("NodePort", Integer.toString(this.metaDataEntry.serverPort));
         jsonMessage.put("CacheStrategy", this.strategy.toString());
         jsonMessage.put("CacheSize", Integer.toString(this.cacheSize));
-        jsonMessage.put("State", state);
+        jsonMessage.put("State", this.state);
         jsonMessage.put("NodeHash", hasher.hashString(this.name));
         jsonMessage.put("LeftHash", this.metaDataEntry.leftHash);
         jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
-        jsonMessage.put("Target", "null");
+        jsonMessage.put("Target", target);
+        jsonMessage.put("Transfer", "OFF");
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath + this.name, zkData, this.zk.exists(zkPath + this.name, true).getVersion());
 		} catch (KeeperException | InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -627,31 +633,39 @@ public class KVServer implements IKVServer, Watcher {
 			case NodeDataChanged:
 				String state = (String) jsonMessage.get("State");
 				String targetName = (String) jsonMessage.get("Target");
+				String transferState = (String) jsonMessage.get("Transfer");
 				if (state.equals("START")) {
 					this.start();
 				} else if (state.equals("STOP")) {
 					this.stop();
 				}
+				if (transferState.equals("ON")) {
+					this.lockWrite();
+				} else {
+					this.unlockWrite();
+				}
 				
-				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-				this.update(metaDataEntry);
-				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
+				
 				if (!targetName.equals("null")) {
+//					this.writeLock = true;
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
 					boolean result;
 					try {
-						this.lockWrite();
 						result = this.moveData(hashRange, targetName);
-						if (result) {
-							this.unlockWrite();
-						}
+						if (!result)
+							System.out.println("data transfer failed");
+//						if (result) {
+//							this.unlockWrite();
+//						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-//					}
-//					if (hasher.compareHash(leftHash, metaDataEntry.leftHash) != 0 || hasher.compareHash(rightHash, metaDataEntry.rightHash) != 0) {
-//						
-//					}
+					
+					MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
+					this.update(metaDataEntry);
+					System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
+//					this.writeLock = false;
+					this.notifyECS(targetName);
 				}
 				
 				break;
