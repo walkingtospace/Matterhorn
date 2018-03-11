@@ -434,6 +434,7 @@ public class ECS implements Watcher{
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
         jsonMessage.put("Target", ((ECSNode)escn).target);
+        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -481,6 +482,7 @@ public class ECS implements Watcher{
         jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
         jsonMessage.put("Target", ((ECSNode)escn).target);
+        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
