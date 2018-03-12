@@ -13,7 +13,6 @@ public class HashComparator implements Comparator<String> {
     		}
     		return 1;
     	} else {
-    		int res = 0;
     		int i = 0;
     		String h1i;
     		String h2i;
