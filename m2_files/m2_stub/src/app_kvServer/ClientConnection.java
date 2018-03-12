@@ -98,6 +98,7 @@ public class ClientConnection implements Runnable {
 	                            	break;
 	                            }
 	                            
+	                            System.out.println("key in range::::::::");
 	                            System.out.println(kvServer.isKeyInRange(key));
 	                            
 	                            if (!kvServer.isKeyInRange(key)) {
