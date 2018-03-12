@@ -605,24 +605,10 @@ public class ECS implements Watcher{
     }
 
     public boolean updateZnodeNodeTarget(IECSNode escn, String target) {
-        // update znode
-//    	if(((ECSNode)escn).target == target) {
-//    		return true;
-//    	}
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", ((ECSNode)escn).state);
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("Target", target);
-        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
-        byte[] zkData = jsonMessage.toString().getBytes();
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("Target", target);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
 		} catch (KeeperException e) {
@@ -637,24 +623,11 @@ public class ECS implements Watcher{
     }
 
     public boolean updateZnodeNodeTransfer(IECSNode escn, String transfer) {
-        // update znode
-//    	if(((ECSNode)escn).target == target) {
-//    		return true;
-//    	}
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", ((ECSNode)escn).state);
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("Target", ((ECSNode)escn).target);
-        jsonMessage.put("Transfer", transfer);
-        byte[] zkData = jsonMessage.toString().getBytes();
+    	
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("Transfer", transfer);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
         try {
 			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
 		} catch (KeeperException e) {
