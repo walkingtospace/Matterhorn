@@ -134,24 +134,34 @@ public class KVStore implements KVCommInterface {
         TextMessage res = null;
         while (attempts < RETRY_ATTEMPTS && (res == null || retryStatuses.contains(res.getStatus()))) {
         	attempts += 1;
+        	System.out.println(attempts);
         	if (res != null) {
         		Thread.sleep(RETRY_SLEEP_MS);
         		if (res.getStatus() == StatusType.SERVER_NOT_RESPONSIBLE) {
+        			System.out.println("NOT RESPON");
         			metaData = buildTreeMap(res.getMetaData());
+        			System.out.println("Build TREEMAP");
         			metaDataEntry = getResponsibleServer(key);
+        			System.out.println(metaDataEntry.serverPort);
                     address = metaDataEntry.serverHost;
                     port = metaDataEntry.serverPort;
                     socket = socketMap.get(new AddressKey(address, port));
+                    System.out.println("Got socket");
                     if (socket == null) {
                     	socket = connect(address, port);
                     }
+                    System.out.println("Getting streams");
                     output = socket.getOutputStream();
                     input = socket.getInputStream();
+                    System.out.println("got streams");
         		}
         	}
+        	System.out.println("Before OUTPUT");
             output.write(req_byte, 0, req_byte.length);
             output.flush();
+            System.out.println("Before RECEIVE");
             res = receiveMessage(input);
+            System.out.println("After RECEIVE");
         }
         if (retryStatuses.contains(res.getStatus())) {
         	throw new TimeoutException("Timed out after retrying server requests.");
