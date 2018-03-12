@@ -121,7 +121,7 @@ public class KVStore implements KVCommInterface {
     
     private KVMessage serverRequest(String key, TextMessage req) throws Exception {
     	byte[] req_byte = req.getMsgBytes();
-        MetaDataEntry metaDataEntry = getResponsibleServer(key);
+        MetaDataEntry metaDataEntry = getResponsibleServer(key, true);
         String address = metaDataEntry.serverHost;
         int port = metaDataEntry.serverPort;
         Socket socket = socketMap.get(new AddressKey(address, port));
@@ -141,7 +141,7 @@ public class KVStore implements KVCommInterface {
         			System.out.println("NOT RESPON");
         			metaData = buildTreeMap(res.getMetaData());
         			System.out.println("Build TREEMAP");
-        			metaDataEntry = getResponsibleServer(key);
+        			metaDataEntry = getResponsibleServer(key, true);
         			System.out.println(metaDataEntry.serverPort);
                     address = metaDataEntry.serverHost;
                     port = metaDataEntry.serverPort;
@@ -157,8 +157,22 @@ public class KVStore implements KVCommInterface {
         		}
         	}
         	System.out.println("Before OUTPUT");
-            output.write(req_byte, 0, req_byte.length);
-            output.flush();
+        	try {
+	            output.write(req_byte, 0, req_byte.length);
+	            output.flush();
+        	} catch (IOException e) {
+        		metaDataEntry = getResponsibleServer(metaDataEntry.rightHash, false);
+                address = metaDataEntry.serverHost;
+                port = metaDataEntry.serverPort;
+                socket = socketMap.get(new AddressKey(address, port));
+                if (socket == null) {
+                	socket = connect(address, port);
+                }
+                output = socket.getOutputStream();
+                input = socket.getInputStream();
+                output.write(req_byte, 0, req_byte.length);
+                output.flush();
+        	}
             System.out.println("Before RECEIVE");
             res = receiveMessage(input);
             System.out.println("After RECEIVE");
@@ -175,9 +189,12 @@ public class KVStore implements KVCommInterface {
     	return socket;
     }
     
-    public MetaDataEntry getResponsibleServer(String key) {
+    public MetaDataEntry getResponsibleServer(String key, boolean allowEqual) {
     	String hashCode = hasher.hashString(key);
     	Map.Entry<String, MetaDataEntry> entry = metaData.ceilingEntry(hashCode);
+    	if (!allowEqual) {
+    		entry = metaData.higherEntry(hashCode);
+    	}
     	MetaDataEntry responsible = null;
     	if (entry == null) {
     		responsible = metaData.ceilingEntry("0").getValue();
