@@ -654,11 +654,12 @@ public class KVServer implements IKVServer, Watcher {
 				if (!targetName.equals("null") && transferState.equals("ON")) {
 //					this.writeLock = true;
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
-					if (jsonMessage.get("LeftNode").toString().equals("-1")) {
+					if (jsonMessage.get("LeftHash").toString().equals("-1")) {
+						System.out.println("flip");
 						hashRange[0] = this.metaDataEntry.rightHash;
-						hashRange[0] = this.metaDataEntry.leftHash;
+						hashRange[1] = this.metaDataEntry.leftHash;
 					}
-					
+					System.out.println(hashRange);
 					boolean result;
 					try {
 						result = this.moveData(hashRange, targetName);
