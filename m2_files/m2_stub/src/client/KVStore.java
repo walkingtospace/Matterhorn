@@ -18,7 +18,7 @@ import org.apache.log4j.Logger;
 import common.message.KVMessage;
 import common.message.KVMessage.StatusType;
 import common.message.TextMessage;
-
+import common.helper.HashComparator;
 import common.helper.MD5Hasher;
 import common.message.MetaDataEntry;
 
@@ -178,7 +178,7 @@ public class KVStore implements KVCommInterface {
     }
     
     public TreeMap<String, MetaDataEntry> initializeMetadata(String address, int port) {
-    	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
+    	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>(new HashComparator());
     	String leftHash = "0";
     	String rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
     	MetaDataEntry entry = new MetaDataEntry("InitialServer", address, port, leftHash, rightHash);
@@ -187,7 +187,7 @@ public class KVStore implements KVCommInterface {
     }
     
     public TreeMap<String, MetaDataEntry> buildTreeMap(List<MetaDataEntry> metaDataList) {
-    	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
+    	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>(new HashComparator());
     	for (MetaDataEntry entry : metaDataList) {
     		this.metaData.remove(entry.rightHash);
     		metaData.put(entry.rightHash, entry);
