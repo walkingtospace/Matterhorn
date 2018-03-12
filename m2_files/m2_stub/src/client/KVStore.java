@@ -31,7 +31,7 @@ public class KVStore implements KVCommInterface {
 	
 	private String initial_address;
 	private int initial_port;
-    private TreeMap<String, MetaDataEntry> metaData;
+    private TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
     private HashMap<AddressKey, Socket> socketMap = new HashMap<AddressKey, Socket>();
     private Logger logger = Logger.getRootLogger();
     private MD5Hasher hasher;
@@ -111,6 +111,14 @@ public class KVStore implements KVCommInterface {
         return serverRequest(key, req);
     }
     
+    public TreeMap<String, MetaDataEntry> getMetadata() {
+    	return metaData;
+    }
+    
+    public HashMap<AddressKey, Socket> getSocketMap() {
+    	return socketMap;
+    }
+    
     private KVMessage serverRequest(String key, TextMessage req) throws Exception {
     	byte[] req_byte = req.getMsgBytes();
         MetaDataEntry metaDataEntry = getResponsibleServer(key);
@@ -157,12 +165,16 @@ public class KVStore implements KVCommInterface {
     	return socket;
     }
     
-    private MetaDataEntry getResponsibleServer(String key) {
+    public MetaDataEntry getResponsibleServer(String key) {
     	String hashCode = hasher.hashString(key);
-    	return metaData.ceilingEntry(hashCode).getValue();
+    	MetaDataEntry responsible = metaData.ceilingEntry(hashCode).getValue();
+    	if (responsible == null) {
+    		responsible = metaData.ceilingEntry(hasher.hashString("0")).getValue();
+    	}
+    	return responsible;
     }
     
-    private TreeMap<String, MetaDataEntry> initializeMetadata(String address, int port) {
+    public TreeMap<String, MetaDataEntry> initializeMetadata(String address, int port) {
     	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
     	String leftHash = "0";
     	String rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
@@ -171,7 +183,7 @@ public class KVStore implements KVCommInterface {
     	return metaData;
     }
     
-    private TreeMap<String, MetaDataEntry> buildTreeMap(List<MetaDataEntry> metaDataList) {
+    public TreeMap<String, MetaDataEntry> buildTreeMap(List<MetaDataEntry> metaDataList) {
     	TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
     	for (MetaDataEntry entry : metaDataList) {
     		this.metaData.remove(entry.rightHash);
