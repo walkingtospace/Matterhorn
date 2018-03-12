@@ -265,7 +265,6 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-		System.out.println("triggered");
 		// Check which node has target
 		String path = event.getPath();
 		path = path.substring(1,path.length());
@@ -395,32 +394,14 @@ public class ECS implements Watcher{
         }
     }
 
-
-    public boolean sshStartServers(Collection<IECSNode> res) {
-    	for (IECSNode escn: res) {
-        	System.out.println("Running SSH to start" + escn.getNodeName());
-//            Process proc;
-//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-//            Runtime run = Runtime.getRuntime();
-    // 
-//            try {
-//              proc = run.exec(command);
-//              return true;
-//            } catch (IOException e) {
-//              e.printStackTrace();
-//              return false;
-//            }	
-    	}
-    	return true;
-    }
-
     public boolean sshStartServer(IECSNode res) {
         System.out.println("Running SSH to start" + res.getNodeName());
         Process proc;
         //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
-        String command = "java -jar m2-server.jar 0.0.0.0 3200 &";
+        String command = "ssh 0.0.0.0 java -jar ~/Desktop/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
+        command = command + " " + Integer.toString(this.zkPort);
+        command = command + " " + res.getNodeName();
         Runtime run = Runtime.getRuntime();
- 
         try {
           proc = run.exec(command);
           return true;

@@ -177,10 +177,11 @@ public class TextMessage implements Serializable, KVMessage{
             return null;
     	List<MetaDataEntry> metaDataList = new ArrayList<MetaDataEntry>();
     	JSONArray metaDataArray = (JSONArray) jsonMessage.get("metadata");
+    	System.out.println(metaDataArray.size());
     	for (int i = 0; i < metaDataArray.size(); i++) {
     		JSONObject obj = (JSONObject) metaDataArray.get(i);
     		MetaDataEntry metaDataEntry = new MetaDataEntry((String) obj.get("serverName"),
-    				(String) obj.get("serverHost"), (int) obj.get("serverPort"),
+    				(String) obj.get("serverHost"), Integer.parseInt(obj.get("serverPort").toString()),
     				(String) obj.get("leftHash"), (String) obj.get("rightHash"));
     		metaDataList.add(metaDataEntry);
     	}

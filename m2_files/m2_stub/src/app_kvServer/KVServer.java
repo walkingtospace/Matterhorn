@@ -498,8 +498,8 @@ public class KVServer implements IKVServer, Watcher {
 	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == -1))
 	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
 	                	String value = getValueFromFile(dbPath + fileName);
+	                	System.out.println("send key: " + key);
 	                	migrationClient.put(key, value);
-//	                	this.deleteKV(key);
 	                }
 	            }
 	        }
@@ -654,6 +654,11 @@ public class KVServer implements IKVServer, Watcher {
 				if (!targetName.equals("null") && transferState.equals("ON")) {
 //					this.writeLock = true;
 					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
+					if (jsonMessage.get("LeftNode").toString().equals("-1")) {
+						hashRange[0] = this.metaDataEntry.rightHash;
+						hashRange[0] = this.metaDataEntry.leftHash;
+					}
+					
 					boolean result;
 					try {
 						result = this.moveData(hashRange, targetName);
