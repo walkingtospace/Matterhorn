@@ -35,10 +35,10 @@ public class KVStoreTest extends TestCase {
 	public void testBuildTreeMap() throws NoSuchAlgorithmException, IOException {
 		kvStore = new KVStore("localhost", 50000);
 		List<MetaDataEntry> metadataList = new ArrayList<MetaDataEntry>();
-		metadataList.add(new MetaDataEntry("test1", "localhost", 50001, "0", "3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
+		metadataList.add(new MetaDataEntry("test1", "localhost", 50001, "CFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", "3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
 		metadataList.add(new MetaDataEntry("test2", "localhost", 50002, "40000000000000000000000000000000", "6FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
 		metadataList.add(new MetaDataEntry("test2", "localhost", 50003, "70000000000000000000000000000000", "9FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
-		metadataList.add(new MetaDataEntry("test2", "localhost", 50004, "A0000000000000000000000000000000", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"));
+		metadataList.add(new MetaDataEntry("test2", "localhost", 50004, "A0000000000000000000000000000000", "CFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE"));
 		TreeMap<String, MetaDataEntry> metadata = kvStore.buildTreeMap(metadataList);
 		Assert.assertEquals(4, metadata.size());
 		Assert.assertEquals(50002, metadata.ceilingEntry("400000000000FF000000000000000000").getValue().serverPort);
