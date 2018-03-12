@@ -265,7 +265,6 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-		System.out.println("triggered");
 		// Check which node has target
 		String path = event.getPath();
 		path = path.substring(1,path.length());
@@ -393,25 +392,6 @@ public class ECS implements Watcher{
                 + configPath + "'");
             return false;
         }
-    }
-
-
-    public boolean sshStartServers(Collection<IECSNode> res) {
-    	for (IECSNode escn: res) {
-        	System.out.println("Running SSH to start" + escn.getNodeName());
-//            Process proc;
-//            String command = "ssh -n <username>@localhost nohup java -jar <path>/ms2-server.jar 50000 ERROR &";
-//            Runtime run = Runtime.getRuntime();
-    // 
-//            try {
-//              proc = run.exec(command);
-//              return true;
-//            } catch (IOException e) {
-//              e.printStackTrace();
-//              return false;
-//            }	
-    	}
-    	return true;
     }
 
     public boolean sshStartServer(IECSNode res) {
