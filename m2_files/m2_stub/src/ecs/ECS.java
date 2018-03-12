@@ -265,19 +265,21 @@ public class ECS implements Watcher{
     }
 
     public void process(WatchedEvent event) {
-		System.out.println("triggered");
+//		System.out.println("triggered");
 		// Check which node has target
 		String path = event.getPath();
 		JSONObject jsonMessage = this.getJSON(path.substring(1,path.length()));
         String targetname = (String)jsonMessage.get("Target");
         String transfer = (String)jsonMessage.get("Transfer");
         if (!targetname.equals("null") && transfer.equals("OFF")) {
+        	System.out.println(jsonMessage.toString());
         	JSONObject jsonMessageTarget = this.getJSON(targetname);
         	String transferTarget = (String)jsonMessage.get("Transfer");
         	if (transferTarget.equals("ON")) {
         		IECSNode sender = this.getNodeByKey(path);
         		IECSNode receiver = this.getNodeByKey(transferTarget);
         		((ECSNode)sender).target = "null";
+        		((ECSNode)sender).transfer = "OFF";
         		this.updateZnodeNodeTarget(sender, "null");
         		((ECSNode)receiver).transfer = "OFF";
         		this.updateZnodeNodeTransfer(receiver, "OFF");
@@ -523,8 +525,10 @@ public class ECS implements Watcher{
         jsonMessage.put("Target", ((ECSNode)escn).target);
         jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
+        System.out.println("transfer: " + jsonMessage.get("Transfer").toString());
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+//        this.zk.exists(zkPath,true).getVersion()
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
