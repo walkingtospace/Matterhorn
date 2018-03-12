@@ -167,9 +167,12 @@ public class KVStore implements KVCommInterface {
     
     public MetaDataEntry getResponsibleServer(String key) {
     	String hashCode = hasher.hashString(key);
-    	MetaDataEntry responsible = metaData.ceilingEntry(hashCode).getValue();
-    	if (responsible == null) {
-    		responsible = metaData.ceilingEntry(hasher.hashString("0")).getValue();
+    	Map.Entry<String, MetaDataEntry> entry = metaData.ceilingEntry(hashCode);
+    	MetaDataEntry responsible = null;
+    	if (entry == null) {
+    		responsible = metaData.ceilingEntry("0").getValue();
+    	} else {
+    		responsible = entry.getValue();
     	}
     	return responsible;
     }
