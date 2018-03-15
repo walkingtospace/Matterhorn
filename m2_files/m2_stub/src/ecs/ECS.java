@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Timestamp;
 
 // Internal Import
 import common.helper.MD5Hasher;
@@ -171,14 +172,13 @@ public class ECS implements Watcher{
 
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
-
         // SSH start server
-        status = this.sshStartServer(availServer);
+//        status = this.sshStartServer(availServer);
         
         // Wait until it is added
         try {
-        	System.out.println("waiting to start server manually");
-			Thread.sleep(5000);
+        	System.out.println("waiting to start server manually after");
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -401,7 +401,10 @@ public class ECS implements Watcher{
         String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
         command = command + " " + Integer.toString(this.zkPort);
         command = command + " " + res.getNodeName();
+//        command = command + " &";
         Runtime run = Runtime.getRuntime();
+        System.out.println(command);
+        System.out.println(System.currentTimeMillis());
         try {
           proc = run.exec(command);
           return true;

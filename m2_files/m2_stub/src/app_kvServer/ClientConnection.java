@@ -122,6 +122,9 @@ public class ClientConnection implements Runnable {
 	                                status = StatusType.GET_ERROR;
 	                                break;
 	                            }
+	                            System.out.println("key in range::::::::");
+	                            System.out.println(kvServer.isKeyInRange(key));
+	                            
 	                            if (!kvServer.isKeyInRange(key)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
 	                        		metaData = kvServer.fillMetaData();

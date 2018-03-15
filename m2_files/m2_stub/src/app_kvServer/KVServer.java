@@ -287,13 +287,16 @@ public class KVServer implements IKVServer, Watcher {
 
     public boolean isKeyInRange(String key) throws NoSuchAlgorithmException {
     	
+    	String biggestHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
     	String hashedKey = hasher.hashString(key);
+    	System.out.println(key + " and " + hashedKey);
     	String leftHash = metaDataEntry.leftHash;
     	String rightHash = metaDataEntry.rightHash;
-    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1) 
-    			|| (hasher.compareHash(hashedKey, leftHash) == -1 && hasher.compareHash(hashedKey, rightHash) == -1)
-    			|| (hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == 1)
-    			|| hasher.compareHash(hashedKey, rightHash) == 0) {
+
+    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1)
+    			|| (hasher.compareHash(hashedKey, rightHash) == 0)
+    			|| (hasher.compareHash(leftHash, rightHash) == 1 && (((hasher.compareHash(leftHash, hashedKey) == 1) && (hasher.compareHash(rightHash, hashedKey) == 1)) 
+    			|| ((hasher.compareHash(leftHash, hashedKey) == -1) && (hasher.compareHash(rightHash, hashedKey) == -1))))) {
     		return true;
     	}
     	return false;
@@ -378,6 +381,18 @@ public class KVServer implements IKVServer, Watcher {
     @Override
     public void run(){
         running = initializeServer();
+        String time = Long.toString(System.currentTimeMillis());
+        File timeFile = new File(dbPath + time);
+        
+        if (!timeFile.exists()) {
+            try {
+            	timeFile.createNewFile();
+            } catch (IOException e1) {
+                
+            }
+        } 
+        
+        System.out.println(System.currentTimeMillis());
         if(serverSocket != null) {
             while(running){
                 try {
@@ -678,6 +693,17 @@ public class KVServer implements IKVServer, Watcher {
 //					this.writeLock = false;
 					this.deleteOutOfRangeKey();
 					this.notifyECS(targetName);
+					
+					String time = Long.toString(System.currentTimeMillis());
+			        File timeFile = new File(dbPath + time);
+			        
+			        if (!timeFile.exists()) {
+			            try {
+			            	timeFile.createNewFile();
+			            } catch (IOException e1) {
+			                
+			            }
+			        } 
 				}
 				
 				break;

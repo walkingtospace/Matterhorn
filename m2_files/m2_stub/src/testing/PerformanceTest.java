@@ -26,8 +26,8 @@ public class PerformanceTest extends TestCase {
 			//server.run();
 			//String serverAddress = server.getHostname();
 			//int serverPort = server.getPort();
-			String serverAddress = "localhost";  // TEMP
-			int serverPort = 50000;  // TEMP
+			String serverAddress = "127.0.0.1";  // TEMP
+			int serverPort = 50002;  // TEMP
 			KVStore testStore = new KVStore(serverAddress, serverPort);
 			testStore.connect();
 			System.out.println("Connected to " + serverAddress + " at port " + serverPort);
@@ -40,7 +40,7 @@ public class PerformanceTest extends TestCase {
 			
 			for (int i = 0; i < 1000; i++) {
 				int randInt = (int)(Math.random() * 1000 % 10);
-				boolean getOp = randInt >= 2 ? true : false;
+				boolean getOp = randInt >= 5 ? true : false;
 				
 				if (getOp) {
 					numGets++;

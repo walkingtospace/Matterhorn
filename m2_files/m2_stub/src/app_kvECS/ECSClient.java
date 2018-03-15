@@ -55,8 +55,11 @@ public class ECSClient implements IECSClient {
         	stop = true;
             printInfo("Application exit!");
         } else if (tokens[0].equals("addNodes")){
+        	System.out.println(System.currentTimeMillis());
             this.addNodes(Integer.parseInt(tokens[1]), tokens[2],
                           Integer.parseInt(tokens[3]));
+        	
+            
         } else if (tokens[0].equals("showHashRing")) {
         	ecs.printHashRing();
         } else if (tokens[0].equals("showServerList")) {
@@ -70,6 +73,7 @@ public class ECSClient implements IECSClient {
         } else if(tokens[0].equals("addNode")) {
             this.addNode(tokens[1], Integer.parseInt(tokens[2]));
         } else if(tokens[0].equals("removeNode")) {
+        	System.out.println(System.currentTimeMillis());
         	ArrayList<String> nodeList = new ArrayList<String>();
         	int i = 1;
         	while(i < tokens.length) {
@@ -77,6 +81,7 @@ public class ECSClient implements IECSClient {
         		i++;
         	}
             this.removeNodes(nodeList);
+            System.out.println(System.currentTimeMillis());
         } else if(tokens[0].equals("logLevel")) {
             if(tokens.length == 2) {
                 String level = setLevel(tokens[1]);
