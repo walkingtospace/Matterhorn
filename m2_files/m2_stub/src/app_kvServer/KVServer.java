@@ -362,6 +362,7 @@ public class KVServer implements IKVServer, Watcher {
     		cache.delete(key);
     	key += ".kv";
     	File kvFile = new File(dbPath + key);
+    	System.out.println("delete file in path: " + kvFile);
     	if (kvFile.exists()) {
     		kvFile.delete();
     		result = true;
@@ -626,16 +627,21 @@ public class KVServer implements IKVServer, Watcher {
         }
     }
     
-    private void deleteOutOfRangeKey() {
+    private boolean deleteOutOfRangeKey() {
     	File[] files = new File(dbPath).listFiles();
+    	boolean result = true;
         for (File file: files) {
         	String fileName = file.getName();
             if (fileName.endsWith(".kv")) {
                 String key = fileName.substring(0, fileName.length() - 3);
                 System.out.println(key + " is deleted");
             	try {
-					if (!this.isKeyInRange(key, null, null)) {
-						this.deleteKV(key);
+					if (this.isKeyInRange(key, null, null)) {
+						result = this.deleteKV(key);
+						if (!result) {
+							System.out.println("delete failed in deleteOUtOfRange");
+							break;
+						}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -643,6 +649,7 @@ public class KVServer implements IKVServer, Watcher {
                 
             }
         }
+        return result;
     }
 
 	@Override
