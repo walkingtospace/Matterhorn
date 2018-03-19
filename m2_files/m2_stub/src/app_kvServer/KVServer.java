@@ -285,27 +285,36 @@ public class KVServer implements IKVServer, Watcher {
         return value;
     }
 
-    public boolean isKeyInRange(String key) throws NoSuchAlgorithmException {
+    public boolean isKeyInRange(String key, String leftHash, String rightHash) throws NoSuchAlgorithmException {
     	
-    	String biggestHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
     	String hashedKey = hasher.hashString(key);
     	System.out.println(key + " and " + hashedKey);
-    	String leftHash = metaDataEntry.leftHash;
-    	String rightHash = metaDataEntry.rightHash;
-
-    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1)
-    			|| (hasher.compareHash(hashedKey, rightHash) == 0)
-    			|| (hasher.compareHash(leftHash, rightHash) == 1 && (((hasher.compareHash(leftHash, hashedKey) == 1) && (hasher.compareHash(rightHash, hashedKey) == 1)) 
-    			|| ((hasher.compareHash(leftHash, hashedKey) == -1) && (hasher.compareHash(rightHash, hashedKey) == -1))))) {
+    	if (leftHash == null && rightHash == null) {
+    		leftHash = this.metaDataEntry.leftHash;
+    		rightHash = this.metaDataEntry.rightHash;
+    		System.out.println("retrive from metaData");
+    	}
+    	System.out.println("left: " + leftHash + " right: " + rightHash);
+    	
+    	boolean isCrossRange = hasher.compareHash(leftHash, rightHash) == 1;
+    	boolean isNormalCase = hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == -1;
+    	boolean isCrossCaseRight = hasher.compareHash(hashedKey, leftHash) == -1 && hasher.compareHash(hashedKey, rightHash) == -1;
+    	boolean isCrossCaseLeft = hasher.compareHash(hashedKey, leftHash) == 1 && hasher.compareHash(hashedKey, rightHash) == 1;
+    	boolean isBoundaryCase = hasher.compareHash(hashedKey, rightHash) == 0;
+    	if (isNormalCase || isBoundaryCase || (isCrossRange && (isCrossCaseRight || isCrossCaseLeft))) {
     		return true;
     	}
+//    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1)
+//    			|| (hasher.compareHash(hashedKey, rightHash) == 0)
+//    			|| (hasher.compareHash(leftHash, rightHash) == 1 && (((hasher.compareHash(leftHash, hashedKey) == 1) && (hasher.compareHash(rightHash, hashedKey) == 1)) 
+//    			|| ((hasher.compareHash(leftHash, hashedKey) == -1) && (hasher.compareHash(rightHash, hashedKey) == -1))))) {
+//    		return true;
+//    	}
     	return false;
     }
 
     @Override
     public void putKV(String key, String value) throws Exception{
-//    	if (writeLock == true)
-//    		return;
         if (cache != null) {
             if (value == cache.get(key)) {
                 // Update recency in case of LRU or count in case of LFU.
@@ -381,18 +390,18 @@ public class KVServer implements IKVServer, Watcher {
     @Override
     public void run(){
         running = initializeServer();
-        String time = Long.toString(System.currentTimeMillis());
-        File timeFile = new File(dbPath + time);
+//        String time = Long.toString(System.currentTimeMillis());
+//        File timeFile = new File(dbPath + time);
+//        
+//        if (!timeFile.exists()) {
+//            try {
+//            	timeFile.createNewFile();
+//            } catch (IOException e1) {
+//                
+//            }
+//        } 
         
-        if (!timeFile.exists()) {
-            try {
-            	timeFile.createNewFile();
-            } catch (IOException e1) {
-                
-            }
-        } 
-        
-        System.out.println(System.currentTimeMillis());
+//        System.out.println(System.currentTimeMillis());
         if(serverSocket != null) {
             while(running){
                 try {
@@ -489,15 +498,11 @@ public class KVServer implements IKVServer, Watcher {
 			
 			String targetServerHost = (String) jsonMessage.get("NodeHost");
 	        int targetServerPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
-	    	
-//	    	List<String> list = zk.getChildren(zkPath, true);
 	        System.out.println(targetServerHost + " " + targetServerPort);
 	    	KVStore migrationClient = new KVStore(targetServerHost, targetServerPort);
 	    	migrationClient.connect();
 	    	System.out.println("pass migrationClient connect");
 	    	migrationClient.enableTransfer();
-//	    	String maxHash = hasher.hashString("0");
-//	    	String minHash = hasher.hashString("FFFFFF");
 	    	File[] files = new File(dbPath).listFiles();
 	    	System.out.println("size of db: " + files.length);
 	        for (File file: files) {
@@ -506,20 +511,25 @@ public class KVServer implements IKVServer, Watcher {
 	            	System.out.println("file in moveData: " + fileName);
 	                String key = fileName.substring(0, fileName.length() - 3);
 	                String hashedKey = hasher.hashString(key);
-	                System.out.println("key in moveData " + key);
-	                // special case: hashRange across starting of the ring or end of the ring
-	                if ((hasher.compareHash(hashedKey, hashRange[0]) == -1) || (hasher.compareHash(hashedKey, hashRange[0]) == 0)
-	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))
-	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == -1))
-	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
+	                System.out.println("key in moveData: " + key);
+	                System.out.println("hash range in moveData: " + hashRange);
+	                if (this.isKeyInRange(hashedKey, hashRange[0], hashRange[1])) {
 	                	String value = getValueFromFile(dbPath + fileName);
 	                	System.out.println("send key: " + key);
 	                	migrationClient.put(key, value);
 	                }
+//	                if ((hasher.compareHash(hashedKey, hashRange[0]) == -1) || (hasher.compareHash(hashedKey, hashRange[0]) == 0)
+//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))
+//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == -1))
+//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
+//	                	String value = getValueFromFile(dbPath + fileName);
+//                		System.out.println("send key: " + key);
+//                		migrationClient.put(key, value);
+//	                }
 	            }
 	        }
 	        migrationClient.disconnect();
-	        System.out.println("after disconnect");
+	        System.out.println("after disconnect in moveData");
 		} catch (Exception e) {
 			System.out.println("moveData exception");
 			e.printStackTrace();
@@ -622,9 +632,9 @@ public class KVServer implements IKVServer, Watcher {
         	String fileName = file.getName();
             if (fileName.endsWith(".kv")) {
                 String key = fileName.substring(0, fileName.length() - 3);
-                System.out.println("key in delete: " + key);
+                System.out.println(key + " is deleted");
             	try {
-					if (!this.isKeyInRange(key)) {
+					if (!this.isKeyInRange(key, null, null)) {
 						this.deleteKV(key);
 					}
 				} catch (Exception e) {
@@ -665,14 +675,19 @@ public class KVServer implements IKVServer, Watcher {
 				} else {
 					this.unlockWrite();
 				}
-				
+				String newLeftHash = (String) jsonMessage.get("LeftHash");
 				if (!targetName.equals("null") && transferState.equals("ON")) {
-//					this.writeLock = true;
-					String[] hashRange = {this.metaDataEntry.leftHash, this.metaDataEntry.rightHash};
-					if (jsonMessage.get("LeftHash").toString().equals("-1")) {
-						System.out.println("flip");
-						hashRange[0] = this.metaDataEntry.rightHash;
-						hashRange[1] = this.metaDataEntry.leftHash;
+					String[] hashRange = new String[2];
+					
+//					String newRightHash = (String) jsonMessage.get("RightHash");
+					if (newLeftHash.equals("-1")) {
+						System.out.println("removeNode case");
+						hashRange[0] = this.metaDataEntry.leftHash;
+						hashRange[1] = this.metaDataEntry.rightHash;
+					} else {
+						System.out.println("addeNode case");
+						hashRange[0] = this.metaDataEntry.leftHash;
+						hashRange[1] = newLeftHash;
 					}
 					System.out.println(hashRange);
 					boolean result;
@@ -680,32 +695,25 @@ public class KVServer implements IKVServer, Watcher {
 						result = this.moveData(hashRange, targetName);
 						if (!result)
 							System.out.println("data transfer failed");
-//						if (result) {
-//							this.unlockWrite();
-//						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					
-					MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-					this.update(metaDataEntry);
-					System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
-//					this.writeLock = false;
-					this.deleteOutOfRangeKey();
-					this.notifyECS(targetName);
-					
-					String time = Long.toString(System.currentTimeMillis());
-			        File timeFile = new File(dbPath + time);
-			        
-			        if (!timeFile.exists()) {
-			            try {
-			            	timeFile.createNewFile();
-			            } catch (IOException e1) {
-			                
-			            }
-			        } 
-				}
-				
+//					String time = Long.toString(System.currentTimeMillis());
+//			        File timeFile = new File(dbPath + time);
+//			        
+//			        if (!timeFile.exists()) {
+//			            try {
+//			            	timeFile.createNewFile();
+//			            } catch (IOException e1) {
+//			                
+//			            }
+//			        } 
+				} 
+				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
+				this.update(metaDataEntry);
+				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
+				this.deleteOutOfRangeKey();
+				this.notifyECS(targetName);
 				break;
 //			case NodeCreated:
 //				this.start();

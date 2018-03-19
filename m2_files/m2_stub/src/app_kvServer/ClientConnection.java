@@ -99,9 +99,9 @@ public class ClientConnection implements Runnable {
 	                            }
 	                            
 	                            System.out.println("key in range::::::::");
-	                            System.out.println(kvServer.isKeyInRange(key));
+	                            System.out.println(kvServer.isKeyInRange(key, null, null));
 	                            
-	                            if (!kvServer.isKeyInRange(key)) {
+	                            if (!kvServer.isKeyInRange(key, null, null)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
 	                        		metaData = kvServer.fillMetaData();
 	                        		break;
@@ -123,9 +123,9 @@ public class ClientConnection implements Runnable {
 	                                break;
 	                            }
 	                            System.out.println("key in range::::::::");
-	                            System.out.println(kvServer.isKeyInRange(key));
+	                            System.out.println(kvServer.isKeyInRange(key, null, null));
 	                            
-	                            if (!kvServer.isKeyInRange(key)) {
+	                            if (!kvServer.isKeyInRange(key, null, null)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
 	                        		metaData = kvServer.fillMetaData();
 	                        		break;
@@ -147,7 +147,7 @@ public class ClientConnection implements Runnable {
 	                            	break;
 	                            } 
 	                        	key = latestMsg.getKey();
-	                        	if (!kvServer.isKeyInRange(key)) {
+	                        	if (!kvServer.isKeyInRange(key, null, null)) {
 	                        		status = StatusType.SERVER_NOT_RESPONSIBLE;
 	                        		metaData = kvServer.fillMetaData();
 	                        		break;

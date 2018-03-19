@@ -404,7 +404,6 @@ public class ECS implements Watcher{
 //        command = command + " &";
         Runtime run = Runtime.getRuntime();
         System.out.println(command);
-        System.out.println(System.currentTimeMillis());
         try {
           proc = run.exec(command);
           return true;
