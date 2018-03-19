@@ -513,7 +513,7 @@ public class KVServer implements IKVServer, Watcher {
 	                String hashedKey = hasher.hashString(key);
 	                System.out.println("key in moveData: " + key);
 	                System.out.println("hash range in moveData: " + hashRange);
-	                if (this.isKeyInRange(hashedKey, hashRange[0], hashRange[1])) {
+	                if (this.isKeyInRange(key, hashRange[0], hashRange[1])) {
 	                	String value = getValueFromFile(dbPath + fileName);
 	                	System.out.println("send key: " + key);
 	                	migrationClient.put(key, value);
@@ -698,6 +698,7 @@ public class KVServer implements IKVServer, Watcher {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
+					this.deleteOutOfRangeKey();
 //					String time = Long.toString(System.currentTimeMillis());
 //			        File timeFile = new File(dbPath + time);
 //			        
@@ -708,15 +709,14 @@ public class KVServer implements IKVServer, Watcher {
 //			                
 //			            }
 //			        } 
-				} 
+				}
 				if (newLeftHash.equals("-1")) {
 					this.stop();
 				}
 				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
 				this.update(metaDataEntry);
 				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
-				if (!targetName.equals("null")) {
-					this.deleteOutOfRangeKey();
+				if (!targetName.equals("null") && transferState.equals("ON")) {
 					this.notifyECS(targetName);
 				}
 				break;
