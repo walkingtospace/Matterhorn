@@ -44,8 +44,8 @@ public class ServerTest extends TestCase{
 	public void testIsKeyInRange() throws KeeperException, InterruptedException, IOException, NoSuchAlgorithmException {
 		createDummyZNode("test4", "60004");
 		kvServer = new KVServer("test4", "0.0.0.0", 3200);
-		boolean result1 = kvServer.isKeyInRange("A");
-		boolean result2 = kvServer.isKeyInRange("15");
+		boolean result1 = kvServer.isKeyInRange("A", null, null);
+		boolean result2 = kvServer.isKeyInRange("15", null, null);
 		System.out.println(result1);
 		System.out.println(result2);
 		Assert.assertEquals(true, result1 && result2);
