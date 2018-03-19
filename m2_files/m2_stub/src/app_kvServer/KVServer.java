@@ -709,11 +709,16 @@ public class KVServer implements IKVServer, Watcher {
 //			            }
 //			        } 
 				} 
+				if (newLeftHash.equals("-1")) {
+					this.stop();
+				}
 				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
 				this.update(metaDataEntry);
 				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
-				this.deleteOutOfRangeKey();
-				this.notifyECS(targetName);
+				if (!targetName.equals("null")) {
+					this.deleteOutOfRangeKey();
+					this.notifyECS(targetName);
+				}
 				break;
 //			case NodeCreated:
 //				this.start();
