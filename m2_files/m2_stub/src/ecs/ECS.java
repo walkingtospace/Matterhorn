@@ -629,6 +629,27 @@ public class ECS implements Watcher{
         
     	return true;
     }
+    
+    public boolean updateZnodeLeftRightHashTargetNodeTransfer(IECSNode escn, String leftHash,
+    		                                                  String rightHash, String target, String transfer) {
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("Transfer", transfer);
+    	oldConfig.put("LeftHash", leftHash);
+    	oldConfig.put("RightHash", rightHash);
+    	oldConfig.put("Target", target);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
+        try {
+			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    	return true;
+    }
 
     public boolean addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
@@ -673,17 +694,21 @@ public class ECS implements Watcher{
     			IECSNode e = r.escn;
     			int t = (i + 1) % (this.hashRing.size()); // next node
     			IECSNode te = this.hashRing.get(t).escn;
-    			// update the znode left and right hash
+    			// update the  left and right hash
     			((ECSNode)e).leftHash = "-1";
     			((ECSNode)e).rightHash = "-1";
-    			this.updateZnodeHash(e, "-1", "-1");
+    			//this.updateZnodeHash(e, "-1", "-1");
     			// update the nodes target and transfer
     			((ECSNode)e).transfer = "ON";
     			((ECSNode)te).transfer = "ON";
-    			this.updateZnodeNodeTransfer(e, "ON");
-    			this.updateZnodeNodeTransfer(te, "ON");
+    			//this.updateZnodeNodeTransfer(e, "ON");
+    			//this.updateZnodeNodeTransfer(te, "ON");
     			((ECSNode)e).target = te.getNodeName();
-    			this.updateZnodeNodeTarget(e, te.getNodeName());
+    			//this.updateZnodeNodeTarget(e, te.getNodeName());
+    			
+    			// Update e node on Zookeeper in a batch
+    			this.updateZnodeLeftRightHashTargetNodeTransfer(e, "-1", "-1", te.getNodeName(), "ON");
+    			this.updateZnodeNodeTransfer(te, "ON");
     			// remove from hash ring
     			this.hashRing.remove(i);
     			return true;
