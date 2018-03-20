@@ -651,7 +651,7 @@ public class ECS implements Watcher{
     	return true;
     }
 
-    public boolean addECSNodeToHashRing(IECSNode escn) {
+    public int addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
         String nameHash = hasher.hashString(escn.getNodeName());
         ((ECSNode)escn).nameHash = nameHash;
@@ -660,6 +660,7 @@ public class ECS implements Watcher{
         // Insert the ringEntry into the hash ring that preserves order
         if (this.hashRing.size() == 0) {
             this.hashRing.add(ringEntry);
+            return -1;
         } else {
             // Find the index of the position that is less 
             int i = 0;
@@ -671,18 +672,23 @@ public class ECS implements Watcher{
                 i++;
             }
             this.hashRing.add(i, ringEntry);
-            int t = (i + 1)%(this.hashRing.size());
-            // Set target
-            this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
-            ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
-            // Set transfer to ON
-            this.updateZnodeNodeTransfer(hashRing.get(t).escn, "ON");
-            ((ECSNode)hashRing.get(t).escn).transfer = "ON"; 
-            this.updateZnodeNodeTransfer(hashRing.get(i).escn, "ON");
-            ((ECSNode)hashRing.get(i).escn).transfer = "ON";
+            
+            
+//            int t = (i + 1)%(this.hashRing.size());
+//            // Set target
+//            IECSNode tnode = hashRing.get(t).escn;
+//            IECSNode inode = hashRing.get(i).escn;
+//            this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
+//            ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
+//            // Set transfer to ON
+//            this.updateZnodeNodeTransfer(hashRing.get(t).escn, "ON");
+//            ((ECSNode)hashRing.get(t).escn).transfer = "ON"; 
+//            this.updateZnodeNodeTransfer(hashRing.get(i).escn, "ON");
+//            ((ECSNode)hashRing.get(i).escn).transfer = "ON";
+            
+            
+            return i;
         }
-
-        return true;
     }
     
     public boolean removeESCNodeFromHashRing(IECSNode escn) {
@@ -753,6 +759,53 @@ public class ECS implements Watcher{
         return status;
     }
 
+    public boolean recalculateHashRangeSetTransfer(int rindex) {
+        // find all escn entry in the Hash Ring
+        int numRingEntry = this.hashRing.size();
+        int i = 0;
+        int sindex = (rindex + 1) % numRingEntry;
+        HashRingEntry ringEntry;
+        boolean status = true;
+        ECSNode escn;
+        // if there's only one entry
+        if (numRingEntry == 1) {
+            ringEntry = this.hashRing.get(0);
+            escn = (ECSNode)ringEntry.escn;
+            escn.leftHash = "0"; // Minimal Hash
+            escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
+            status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+            status = this.updateZnodeNodeHash(escn, escn.nameHash);
+        } else {
+            while(i < numRingEntry) {
+                ringEntry = this.hashRing.get(i);
+                escn = (ECSNode)ringEntry.escn;
+                if(i == 0) {
+                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
+                	escn.rightHash = ringEntry.hashValue;
+                } else {
+                    // Last entry
+                	escn.leftHash = hashRing.get(i - 1).hashValue;
+                    escn.rightHash = hashRing.get(i).hashValue;
+                }
+                if (i == rindex) {
+                	// receiver
+                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, escn.target, "ON");
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+                } else if (i == sindex) {
+                	// sender
+                	escn.target = hashRing.get(rindex).escn.getNodeName();
+                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, hashRing.get(rindex).escn.getNodeName(), "ON");
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+
+                } else {
+                    status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+                }
+                i++;
+            }
+        }
+        return status;
+    }
 
     public boolean startServer(IECSNode escn) {
     	((ECSNode)escn).state = "START";
