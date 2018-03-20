@@ -549,7 +549,7 @@ public class ECS implements Watcher{
         jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
@@ -581,7 +581,7 @@ public class ECS implements Watcher{
         jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
@@ -599,7 +599,7 @@ public class ECS implements Watcher{
         byte[] zkData = oldConfig.toString().getBytes();
         String zkPath = "/" + escn.getNodeName();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
@@ -618,7 +618,7 @@ public class ECS implements Watcher{
         byte[] zkData = oldConfig.toString().getBytes();
         String zkPath = "/" + escn.getNodeName();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
@@ -640,7 +640,7 @@ public class ECS implements Watcher{
         byte[] zkData = oldConfig.toString().getBytes();
         String zkPath = "/" + escn.getNodeName();
         try {
-			this.zk.setData(zkPath, zkData, this.zk.exists(zkPath,true).getVersion());
+			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
