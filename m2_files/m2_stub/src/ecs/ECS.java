@@ -173,12 +173,12 @@ public class ECS implements Watcher{
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
         // SSH start server
-//        status = this.sshStartServer(availServer);
+        status = this.sshStartServer(availServer);
         
         // Wait until it is added
         try {
-        	System.out.println("waiting to start server manually after");
-			Thread.sleep(10000);
+        	System.out.println("start server: " + status);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

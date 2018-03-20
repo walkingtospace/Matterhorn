@@ -191,9 +191,10 @@ public class KVServer implements IKVServer, Watcher {
     // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
 		try {
+			
 			if (args.length != 3) {
 				System.out.println("Wrong number of arguments passed to server");
-			}
+			}	        
 //			new LogSetup("logs/server.log", Level.ALL);
 			String zkHostname = args[0];
 			int zkPort = Integer.parseInt(args[1]);
@@ -355,8 +356,6 @@ public class KVServer implements IKVServer, Watcher {
     
     @Override
 	public boolean deleteKV(String key) throws Exception{
-//    	if (writeLock == true)
-//    		return false;
 		boolean result = false;
     	if (inCache(key))
     		cache.delete(key);
@@ -385,6 +384,7 @@ public class KVServer implements IKVServer, Watcher {
                 file.delete();
             }
         }
+        
     }
 
 
