@@ -173,21 +173,25 @@ public class ECS implements Watcher{
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
         // SSH start server
-        status = this.sshStartServer(availServer);
+//        status = this.sshStartServer(availServer);
         
         // Wait until it is added
         try {
         	System.out.println("start server: " + status);
-			Thread.sleep(5000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
         
         // Add the ECSNode to the hashring
-        status = this.addECSNodeToHashRing(availServer);
+        int rIndex = this.addECSNodeToHashRing(availServer);
 
+        if (rIndex != -1) {
+        	status = this.recalculateHashRangeSetTransfer(rIndex);
+        } else {
         // Configure the hash range of the node
-        status = this.recalculateHashRange();
+        	status = this.recalculateHashRange();
+        }
 
         // Wait until the transfer is successful
         status = this.waitTransfer();

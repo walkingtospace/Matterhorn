@@ -190,6 +190,7 @@ public class KVServer implements IKVServer, Watcher {
     
     // invoker should provide zkHostname, zkPort, name and zkPath
     public static void main(String[] args) {
+        KVServer server = null;
 		try {
 			
 			if (args.length != 3) {
@@ -199,14 +200,13 @@ public class KVServer implements IKVServer, Watcher {
 			String zkHostname = args[0];
 			int zkPort = Integer.parseInt(args[1]);
 			String name = args[2];
-//			String name = "server1";
-//			String zkHostname = "0.0.0.0";
-//			int zkPort = 3100;
-			KVServer server = new KVServer(name, zkHostname, zkPort);
+			server = new KVServer(name, zkHostname, zkPort);
 			server.run();
 		} catch(Exception e) {
 			logger.error("Error! Can't start server");
-		}
+		} finally {
+            server.close();
+        }
 	}
 
 
@@ -305,12 +305,6 @@ public class KVServer implements IKVServer, Watcher {
     	if (isNormalCase || isBoundaryCase || (isCrossRange && (isCrossCaseRight || isCrossCaseLeft))) {
     		return true;
     	}
-//    	if ((hasher.compareHash(leftHash, hashedKey) == -1 && hasher.compareHash(rightHash, hashedKey) == 1)
-//    			|| (hasher.compareHash(hashedKey, rightHash) == 0)
-//    			|| (hasher.compareHash(leftHash, rightHash) == 1 && (((hasher.compareHash(leftHash, hashedKey) == 1) && (hasher.compareHash(rightHash, hashedKey) == 1)) 
-//    			|| ((hasher.compareHash(leftHash, hashedKey) == -1) && (hasher.compareHash(rightHash, hashedKey) == -1))))) {
-//    		return true;
-//    	}
     	return false;
     }
 
@@ -391,18 +385,6 @@ public class KVServer implements IKVServer, Watcher {
     @Override
     public void run(){
         running = initializeServer();
-//        String time = Long.toString(System.currentTimeMillis());
-//        File timeFile = new File(dbPath + time);
-//        
-//        if (!timeFile.exists()) {
-//            try {
-//            	timeFile.createNewFile();
-//            } catch (IOException e1) {
-//                
-//            }
-//        } 
-        
-//        System.out.println(System.currentTimeMillis());
         if(serverSocket != null) {
             while(running){
                 try {
@@ -490,7 +472,6 @@ public class KVServer implements IKVServer, Watcher {
     }
 
     @Override
-    // assume hashRange is given in clockwise rotation
     public boolean moveData(String[] hashRange, String targetName){
     	
     	JSONObject jsonMessage;
@@ -506,6 +487,7 @@ public class KVServer implements IKVServer, Watcher {
 	    	migrationClient.enableTransfer();
 	    	File[] files = new File(dbPath).listFiles();
 	    	System.out.println("size of db: " + files.length);
+            System.out.println("hash range in moveData: " + hashRange);
 	        for (File file: files) {
 	        	String fileName = file.getName();
 	            if (fileName.endsWith(".kv")) {
@@ -513,20 +495,11 @@ public class KVServer implements IKVServer, Watcher {
 	                String key = fileName.substring(0, fileName.length() - 3);
 	                String hashedKey = hasher.hashString(key);
 	                System.out.println("key in moveData: " + key);
-	                System.out.println("hash range in moveData: " + hashRange);
 	                if (this.isKeyInRange(key, hashRange[0], hashRange[1])) {
 	                	String value = getValueFromFile(dbPath + fileName);
 	                	System.out.println("send key: " + key);
 	                	migrationClient.put(key, value);
 	                }
-//	                if ((hasher.compareHash(hashedKey, hashRange[0]) == -1) || (hasher.compareHash(hashedKey, hashRange[0]) == 0)
-//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))
-//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == -1) && (hasher.compareHash(hashedKey, hashRange[1]) == -1))
-//	                		|| ((hasher.compareHash(hashedKey, hashRange[0]) == 1) && (hasher.compareHash(hashedKey, hashRange[1]) == 1))) {
-//	                	String value = getValueFromFile(dbPath + fileName);
-//                		System.out.println("send key: " + key);
-//                		migrationClient.put(key, value);
-//	                }
 	            }
 	        }
 	        migrationClient.disconnect();
@@ -553,11 +526,8 @@ public class KVServer implements IKVServer, Watcher {
         jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
         jsonMessage.put("Target", target);
         jsonMessage.put("Transfer", "OFF");
-//        System.out.println("in notfiyECS");
-//        System.out.println(jsonMessage.toString());
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
-//        	this.zk.exists(zkPath, true).getVersion()
 			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException | InterruptedException e) {
 			e.printStackTrace();
@@ -581,8 +551,9 @@ public class KVServer implements IKVServer, Watcher {
         try {
             serverSocket.close();
         } catch (IOException e) {
-            logger.error("Error! " +
-                    "Unable to close socket on port: " + getPort(), e);
+            // logger.error("Error! " +
+            //         "Unable to close socket on port: " + getPort(), e);
+        	System.out.println("Error! " + "Unable to close socket on port: " + getPort());
         }
     }
 
@@ -627,7 +598,7 @@ public class KVServer implements IKVServer, Watcher {
         }
     }
     
-    private boolean deleteOutOfRangeKey() {
+    private boolean deleteOutOfRangeKey(String leftHash, String rightHash) {
     	File[] files = new File(dbPath).listFiles();
     	boolean result = true;
         for (File file: files) {
@@ -636,7 +607,7 @@ public class KVServer implements IKVServer, Watcher {
                 String key = fileName.substring(0, fileName.length() - 3);
                 System.out.println(key + " is deleted");
             	try {
-					if (this.isKeyInRange(key, null, null)) {
+					if (this.isKeyInRange(key, leftHash, rightHash)) {
 						result = this.deleteKV(key);
 						if (!result) {
 							System.out.println("delete failed in deleteOUtOfRange");
@@ -671,10 +642,12 @@ public class KVServer implements IKVServer, Watcher {
 				String state = (String) jsonMessage.get("State");
 				String targetName = (String) jsonMessage.get("Target");
 				String transferState = (String) jsonMessage.get("Transfer");
+                String newLeftHash = (String) jsonMessage.get("LeftHash");
+                boolean isNodeDeleted = newLeftHash.equals("-1");
 				System.out.println(transferState);
 				if (state.equals("START")) {
 					this.start();
-				} else if (state.equals("STOP")) {
+				} else if (state.equals("STOP") || isNodeDeleted) {
 					this.stop();
 				}
 				if (transferState.equals("ON")) {
@@ -682,18 +655,21 @@ public class KVServer implements IKVServer, Watcher {
 				} else {
 					this.unlockWrite();
 				}
-				String newLeftHash = (String) jsonMessage.get("LeftHash");
+				
 				if (!targetName.equals("null") && transferState.equals("ON")) {
 					String[] hashRange = new String[2];
 					
-//					String newRightHash = (String) jsonMessage.get("RightHash");
-					if (newLeftHash.equals("-1")) {
+					if (isNodeDeleted) {
 						System.out.println("removeNode case");
 						hashRange[0] = this.metaDataEntry.leftHash;
 						hashRange[1] = this.metaDataEntry.rightHash;
 					} else {
 						System.out.println("addeNode case");
-						hashRange[0] = this.metaDataEntry.leftHash;
+						if (this.metaDataEntry.leftHash.equals("0") && this.metaDataEntry.rightHash.equals("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")) {
+							hashRange[0] = (String) jsonMessage.get("NodeHash");							
+						} else {
+							hashRange[0] = this.metaDataEntry.leftHash;
+						}
 						hashRange[1] = newLeftHash;
 					}
 					System.out.println(hashRange);
@@ -705,31 +681,17 @@ public class KVServer implements IKVServer, Watcher {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					this.deleteOutOfRangeKey();
-//					String time = Long.toString(System.currentTimeMillis());
-//			        File timeFile = new File(dbPath + time);
-//			        
-//			        if (!timeFile.exists()) {
-//			            try {
-//			            	timeFile.createNewFile();
-//			            } catch (IOException e1) {
-//			                
-//			            }
-//			        } 
+					this.deleteOutOfRangeKey(hashRange[0], hashRange[1]);
+                    this.notifyECS(targetName);
+                    if (isNodeDeleted) {
+                        this.close();
+                        System.out.println("server is closed due to node is removed");
+                    }
 				}
-				if (newLeftHash.equals("-1")) {
-					this.stop();
-				}
-				MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-				this.update(metaDataEntry);
+                MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
+                this.update(metaDataEntry);
 				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
-				if (!targetName.equals("null") && transferState.equals("ON")) {
-					this.notifyECS(targetName);
-				}
 				break;
-//			case NodeCreated:
-//				this.start();
-//				break;
 			case NodeDeleted:
 				this.close();
 				break;	
@@ -737,6 +699,5 @@ public class KVServer implements IKVServer, Watcher {
                 break;
 		}
 		System.out.println("done trigger");
-		
 	}
 }
