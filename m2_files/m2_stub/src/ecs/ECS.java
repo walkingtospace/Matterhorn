@@ -566,24 +566,10 @@ public class ECS implements Watcher{
     }
 
     public boolean updateZnodeNodeHash(IECSNode escn, String nodeHash) {
-        // update znode
-//    	if(((ECSNode)escn).nameHash == nodeHash) {
-//    		return true;
-//    	}
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", ((ECSNode)escn).state);
-        jsonMessage.put("NodeHash", nodeHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("Target", ((ECSNode)escn).target);
-        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
-        byte[] zkData = jsonMessage.toString().getBytes();
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("NodeHash", nodeHash);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
         try {
 			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
@@ -794,11 +780,13 @@ public class ECS implements Watcher{
                 if (i == rindex) {
                 	// receiver
                 	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, escn.target, "ON");
+                	escn.transfer = "ON";
                     status = this.updateZnodeNodeHash(escn, escn.nameHash);	
                 } else if (i == sindex) {
                 	// sender
                 	escn.target = hashRing.get(rindex).escn.getNodeName();
                 	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, hashRing.get(rindex).escn.getNodeName(), "ON");
+                	escn.transfer = "ON";
                     status = this.updateZnodeNodeHash(escn, escn.nameHash);	
 
                 } else {

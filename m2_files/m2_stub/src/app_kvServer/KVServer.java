@@ -682,7 +682,7 @@ public class KVServer implements IKVServer, Watcher {
 						e.printStackTrace();
 					}
 					this.deleteOutOfRangeKey(hashRange[0], hashRange[1]);
-                    this.notifyECS(targetName);
+                    
                     if (isNodeDeleted) {
                         this.close();
                         System.out.println("server is closed due to node is removed");
@@ -690,6 +690,9 @@ public class KVServer implements IKVServer, Watcher {
 				}
                 MetaDataEntry metaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
                 this.update(metaDataEntry);
+                if (!targetName.equals("null") && transferState.equals("ON")) {
+                	this.notifyECS(targetName);
+                }
 				System.out.println(this.metaDataEntry.leftHash  + " " + this.metaDataEntry.rightHash);
 				break;
 			case NodeDeleted:
