@@ -371,7 +371,11 @@ public class ECS implements Watcher{
                                          -1,
                                          "STOP",
                                          "null",
-                                         "OFF");
+                                         "OFF",
+                                         "null",
+                                         "null",
+                                         "null",
+                                         "null");
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -469,6 +473,10 @@ public class ECS implements Watcher{
         jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
         jsonMessage.put("Target", ((ECSNode)escn).target);
         jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
+        jsonMessage.put("M1", ((ECSNode)escn).M1);
+        jsonMessage.put("M2", ((ECSNode)escn).M2);
+        jsonMessage.put("R1", ((ECSNode)escn).R1);
+        jsonMessage.put("R2", ((ECSNode)escn).R2);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -499,28 +507,11 @@ public class ECS implements Watcher{
     }
 
     public boolean updateZnodeState(IECSNode escn, String state) {
-        // update znode
-//    	if (((ECSNode)escn).state == state) {
-//    		// Don't reupdate
-//    		return true;
-//    	}
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", state);
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", ((ECSNode)escn).leftHash);
-        jsonMessage.put("RightHash", ((ECSNode)escn).rightHash);
-        jsonMessage.put("Target", ((ECSNode)escn).target);
-        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
-        byte[] zkData = jsonMessage.toString().getBytes();
-        System.out.println("transfer: " + jsonMessage.get("Transfer").toString());
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("State", state);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
         try {
-//        this.zk.exists(zkPath,true).getVersion()
 			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
 			e.printStackTrace();
@@ -529,29 +520,15 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 			return false;
 		}
-        
     	return true;
     }
 
     public boolean updateZnodeHash(IECSNode escn, String leftHash, String rightHash) {
-        // update znode
-//    	if(((ECSNode)escn).leftHash == leftHash && ((ECSNode)escn).rightHash == rightHash) {
-//    		return true;
-//    	}
-    	String zkPath = "/" + escn.getNodeName();
-    	JSONObject jsonMessage = new JSONObject();
-        jsonMessage.put("NodeName", escn.getNodeName());
-        jsonMessage.put("NodeHost", escn.getNodeHost());
-        jsonMessage.put("NodePort", escn.getNodePort());
-        jsonMessage.put("CacheStrategy", ((ECSNode)escn).cacheStrategy);
-        jsonMessage.put("CacheSize", ((ECSNode)escn).cacheSize);
-        jsonMessage.put("State", ((ECSNode)escn).state);
-        jsonMessage.put("NodeHash", ((ECSNode)escn).nameHash);
-        jsonMessage.put("LeftHash", leftHash);
-        jsonMessage.put("RightHash", rightHash);
-        jsonMessage.put("Target", ((ECSNode)escn).target);
-        jsonMessage.put("Transfer", ((ECSNode)escn).transfer);
-        byte[] zkData = jsonMessage.toString().getBytes();
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("LeftHash", leftHash);
+    	oldConfig.put("RightHash", rightHash);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
         try {
 			this.zk.setData(zkPath, zkData, -1);
 		} catch (KeeperException e) {
@@ -561,7 +538,6 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 			return false;
 		}
-        
     	return true;
     }
 
@@ -579,7 +555,6 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 			return false;
 		}
-        
     	return true;
     }
 
@@ -640,6 +615,26 @@ public class ECS implements Watcher{
 		}
     	return true;
     }
+    
+    public boolean updateZnodeM1M2R1R2(IECSNode escn, String M1, String M2, String R1, String R2) {
+    	JSONObject oldConfig = this.getJSON(escn.getNodeName());
+    	oldConfig.put("M1", M1);
+    	oldConfig.put("M2", M2);
+    	oldConfig.put("R1", R1);
+    	oldConfig.put("R2", R2);
+        byte[] zkData = oldConfig.toString().getBytes();
+        String zkPath = "/" + escn.getNodeName();
+        try {
+			this.zk.setData(zkPath, zkData, -1);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    	return true;
+    }
 
     public int addECSNodeToHashRing(IECSNode escn) {
         // Hash the server's name
@@ -662,21 +657,6 @@ public class ECS implements Watcher{
                 i++;
             }
             this.hashRing.add(i, ringEntry);
-            
-            
-//            int t = (i + 1)%(this.hashRing.size());
-//            // Set target
-//            IECSNode tnode = hashRing.get(t).escn;
-//            IECSNode inode = hashRing.get(i).escn;
-//            this.updateZnodeNodeTarget(hashRing.get(t).escn, hashRing.get(i).escn.getNodeName());
-//            ((ECSNode)hashRing.get(t).escn).target = hashRing.get(i).escn.getNodeName();
-//            // Set transfer to ON
-//            this.updateZnodeNodeTransfer(hashRing.get(t).escn, "ON");
-//            ((ECSNode)hashRing.get(t).escn).transfer = "ON"; 
-//            this.updateZnodeNodeTransfer(hashRing.get(i).escn, "ON");
-//            ((ECSNode)hashRing.get(i).escn).transfer = "ON";
-            
-            
             return i;
         }
     }
@@ -690,21 +670,16 @@ public class ECS implements Watcher{
     			IECSNode e = r.escn;
     			int t = (i + 1) % (this.hashRing.size()); // next node
     			IECSNode te = this.hashRing.get(t).escn;
-    			// update the  left and right hash
     			((ECSNode)e).leftHash = "-1";
     			((ECSNode)e).rightHash = "-1";
-    			//this.updateZnodeHash(e, "-1", "-1");
-    			// update the nodes target and transfer
     			((ECSNode)e).transfer = "ON";
     			((ECSNode)te).transfer = "ON";
-    			//this.updateZnodeNodeTransfer(e, "ON");
-    			//this.updateZnodeNodeTransfer(te, "ON");
     			((ECSNode)e).target = te.getNodeName();
-    			//this.updateZnodeNodeTarget(e, te.getNodeName());
     			
     			// Update e node on Zookeeper in a batch
     			this.updateZnodeLeftRightHashTargetNodeTransfer(e, "-1", "-1", te.getNodeName(), "ON");
     			this.updateZnodeNodeTransfer(te, "ON");
+
     			// remove from hash ring
     			this.hashRing.remove(i);
     			return true;
@@ -743,6 +718,22 @@ public class ECS implements Watcher{
                 }
                 status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
                 status = this.updateZnodeNodeHash(escn, escn.nameHash);
+                
+                // Set M1, M2 and R1 and R2 for that particular node
+                int m1i = (i - 1) % numRingEntry;
+                String m1name = (m1i == i) ? "null" : this.hashRing.get(m1i).escn.getNodeName() ;
+                int m2i = (i - 2) % numRingEntry;
+                String m2name = (m2i == i) ? "null" : this.hashRing.get(m2i).escn.getNodeName() ;
+                int r1i = (i + 1) % numRingEntry;
+                String r1name = (r1i == i) ? "null" : this.hashRing.get(r1i).escn.getNodeName() ;
+                int r2i = (i + 2) % numRingEntry;
+                String r2name = (r2i == i) ? "null" : this.hashRing.get(r2i).escn.getNodeName() ;
+                escn.M1 = m1name;
+                escn.M2 = m2name;
+                escn.R1 = r1name;
+                escn.R2 = r2name;
+                this.updateZnodeM1M2R1R2(escn, m1name, m2name, r1name, r2name);
+                i++;
                 i++;
             }
         }
@@ -781,7 +772,7 @@ public class ECS implements Watcher{
                 	// receiver
                 	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, escn.target, "ON");
                 	escn.transfer = "ON";
-                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);
                 } else if (i == sindex) {
                 	// sender
                 	escn.target = hashRing.get(rindex).escn.getNodeName();
@@ -793,6 +784,21 @@ public class ECS implements Watcher{
                     status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
                     status = this.updateZnodeNodeHash(escn, escn.nameHash);	
                 }
+                
+                // Set M1, M2 and R1 and R2 for that particular node
+                int m1i = (i - 1) % numRingEntry;
+                String m1name = (m1i == i) ? "null" : this.hashRing.get(m1i).escn.getNodeName() ;
+                int m2i = (i - 2) % numRingEntry;
+                String m2name = (m2i == i) ? "null" : this.hashRing.get(m2i).escn.getNodeName() ;
+                int r1i = (i + 1) % numRingEntry;
+                String r1name = (r1i == i) ? "null" : this.hashRing.get(r1i).escn.getNodeName() ;
+                int r2i = (i + 2) % numRingEntry;
+                String r2name = (r2i == i) ? "null" : this.hashRing.get(r2i).escn.getNodeName() ;
+                escn.M1 = m1name;
+                escn.M2 = m2name;
+                escn.R1 = r1name;
+                escn.R2 = r2name;
+                this.updateZnodeM1M2R1R2(escn, m1name, m2name, r1name, r2name);
                 i++;
             }
         }

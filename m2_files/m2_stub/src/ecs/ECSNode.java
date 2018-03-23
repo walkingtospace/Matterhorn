@@ -14,6 +14,10 @@ public class ECSNode implements IECSNode {
     public String state;
     public String target;
     public String transfer;
+    public String M1;
+    public String M2;
+    public String R1;
+    public String R2;
 
     public ECSNode(String NodeName,
                    String NodeHost,
@@ -25,7 +29,11 @@ public class ECSNode implements IECSNode {
                    int cacheSize,
                    String state,
                    String target,
-                   String transfer) {
+                   String transfer,
+                   String M1,
+                   String M2,
+                   String R1,
+                   String R2) {
         this.nodeName = NodeName;
         this.nodeHost = NodeHost;
         this.nodePort = NodePort;
@@ -37,6 +45,10 @@ public class ECSNode implements IECSNode {
         this.state = state;
         this.target = target;
         this.transfer = transfer;
+        this.M1 = M1;
+        this.M2 = M2;
+        this.R1 = R1;
+        this.R2 = R2;
     }
 
     /**
