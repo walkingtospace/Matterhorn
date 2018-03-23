@@ -37,6 +37,7 @@ public class KVStore implements KVCommInterface {
     private MD5Hasher hasher;
     private HashSet<StatusType> retryStatuses = new HashSet<StatusType>();
     private volatile boolean isTransfer; 
+    private volatile boolean isReplicate; 
 
     private static final int BUFFER_SIZE = 1024;
     private static final int DROP_SIZE = 1024 * BUFFER_SIZE;
@@ -84,20 +85,26 @@ public class KVStore implements KVCommInterface {
     public KVMessage put(String key, String value) throws Exception {
         // Create Request
         TextMessage req = null;
-        if (!isTransfer) {
-	        if (value != "" && value != null) {
+        if (isTransfer) {
+        	req = new TextMessage("TRANSFER", key, value);
+        } else if (isReplicate) {
+        	req = new TextMessage("REPLICATE", key, value);
+        } else {
+        	if (value != "" && value != null) {
 	            req = new TextMessage("PUT", key, value);
 	        } else {
 	            req = new TextMessage("DELETE", key, value);
 	        }
-        } else {
-        	req = new TextMessage("TRANSFER", key, value);
         }
         return serverRequest(key, req);
     }
     
     public void enableTransfer() {
     	this.isTransfer = true;
+    }
+    
+    public void enableReplicate() {
+    	this.isReplicate = true;
     }
     
 //    public void disableTransfer() {

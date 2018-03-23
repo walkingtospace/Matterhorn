@@ -78,9 +78,9 @@ public class ClientConnection implements Runnable {
                     
                     System.out.println(state);
                     
-                    if (state.equals("STOP") && operation != StatusType.TRANSFER) {
+                    if (state.equals("STOP") && operation != StatusType.TRANSFER && operation != StatusType.REPLICATE) {
                     	status = StatusType.SERVER_STOPPED;
-                    } else if (state.equals("START") || operation == StatusType.TRANSFER) {
+                    } else if (state.equals("START") || operation == StatusType.TRANSFER || operation == StatusType.REPLICATE) {
 	                    switch (operation) {
 	                        case PUT:
 	                            key = latestMsg.getKey();
@@ -167,6 +167,21 @@ public class ClientConnection implements Runnable {
 	                            value = latestMsg.getValue();
 								try {
 									kvServer.putKV(key, value);
+								} catch (Exception e) {
+									logger.error("Error! Unable to PUT key-value pair!", e);
+	                                status = StatusType.PUT_ERROR;
+								}
+	                        	break;
+	                        case REPLICATE:
+	                        	key = latestMsg.getKey();
+	                            value = latestMsg.getValue();
+								try {
+									if (value.equals("")) {
+										boolean result = kvServer.deleteKV(key);
+		                                status = result ? StatusType.DELETE_SUCCESS : StatusType.DELETE_ERROR;
+									} else {
+										kvServer.putKV(key, value);
+									}
 								} catch (Exception e) {
 									logger.error("Error! Unable to PUT key-value pair!", e);
 	                                status = StatusType.PUT_ERROR;

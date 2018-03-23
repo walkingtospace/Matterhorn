@@ -14,6 +14,7 @@ import java.lang.Integer;
 // 3rd party library import
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.json.simple.JSONObject;
 
 // Internal import
 import logger.LogSetup;
