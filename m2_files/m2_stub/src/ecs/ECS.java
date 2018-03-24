@@ -24,6 +24,7 @@ import java.security.Timestamp;
 
 // Internal Import
 import common.helper.MD5Hasher;
+import common.message.MetaDataEntry;
 
 // JSON
 import org.json.simple.JSONArray;
@@ -215,6 +216,17 @@ public class ECS implements Watcher{
     	return true;
     }
  
+    public boolean waitGeneric(int numSec) {
+    	try {
+    		System.out.println("Waiting transfer to be done");
+			Thread.sleep(numSec * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    	return true;
+    }
+
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
         // Create IECSNodes for the servers, but do not issue the ssh call to start the processes. Should be invoked by addNodes
         ArrayList<IECSNode> res = new ArrayList<IECSNode>();
@@ -280,6 +292,32 @@ public class ECS implements Watcher{
 		JSONObject jsonMessage;
 		if (path == "fd") {
 			jsonMessage = this.getJSON(path);
+	    	JSONArray failedServers = (JSONArray) jsonMessage.get("failed");
+	    	// Empty the fd node
+	    	JSONArray empty = new JSONArray();
+	    	jsonMessage.put("failed", empty);
+	        byte[] zkData = jsonMessage.toString().getBytes();
+	        try {
+				this.zk.setData("/fd", zkData, -1);
+			} catch (KeeperException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+	        
+	    	// process the failed nodes
+	    	String failedServerName;
+	    	for (int i = 0; i < failedServers.size(); i++) {
+	    		failedServerName = (String)failedServers.get(i);
+	    		System.out.println("Handling failed server: " + failedServerName);
+	    		// Remove that server and start a new random server
+	    		IECSNode failedServerNode = this.getNodeByKey(failedServerName);
+	    		this.removeNode(failedServerNode);
+	    		this.waitGeneric(1); // Wait for a while to start a new server
+	    		this.shutdownServer(failedServerNode);
+	    		// Add a new server
+	    		this.addNode("FIFO", 1024);
+	    	}
 		} else {
 			jsonMessage = this.getJSON(path);
 	        String targetname = (String)jsonMessage.get("Target");
@@ -481,7 +519,7 @@ public class ECS implements Watcher{
     public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
-	JSONArray failedServers = new JSONArray();
+    	JSONArray failedServers = new JSONArray();
     	jsonMessage.put("failed", failedServers);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
