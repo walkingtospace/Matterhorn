@@ -140,11 +140,13 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     private MetaDataEntry fillUpMetaDataEntry(JSONObject jsonMessage) {
+    	
     	String serverHost = (String)jsonMessage.get("NodeHost");
         int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
-
+        if (leftHash.equals("-1"))
+        	return null;
         MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
         return metaDataEntry;
     }
@@ -211,7 +213,8 @@ public class KVServer implements IKVServer, Watcher {
                 
                 
                 MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-                metaData.add(nodeMetaDataEntry);
+                if (nodeMetaDataEntry != null)
+                	metaData.add(nodeMetaDataEntry);
     		}
     	}
     	return metaData;
@@ -616,6 +619,14 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     private void stopServer() {
+    	if (this.replica1Client != null) {
+    		this.replica1Client.disconnect();
+    		this.replica1Client = null;
+    	}
+    	if (this.replica2Client != null) {
+    		this.replica2Client.disconnect();
+    		this.replica2Client = null;
+    	}
         running = false;
         try {
             serverSocket.close();
@@ -679,8 +690,7 @@ public class KVServer implements IKVServer, Watcher {
 					if (this.isKeyInRange(key, leftHash, rightHash)) {
 						if (inCache(key))
 				    		cache.delete(key);
-				    	key += ".kv";
-				    	File kvFile = new File(dbPath + key);
+				    	File kvFile = new File(dbPath + fileName);
 				    	if (kvFile.exists()) {
 				    		kvFile.delete();
 				    	}
