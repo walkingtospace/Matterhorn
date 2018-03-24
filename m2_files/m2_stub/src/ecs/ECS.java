@@ -704,6 +704,11 @@ public class ECS implements Watcher{
             escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
             status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
             status = this.updateZnodeNodeHash(escn, escn.nameHash);
+            escn.M1 = "null";
+            escn.M2 = "null";
+            escn.R1 = "null";
+            escn.R2 = "null";
+            this.updateZnodeM1M2R1R2(escn, "null", "null", "null", "null");
         } else {
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
@@ -771,6 +776,11 @@ public class ECS implements Watcher{
             escn.rightHash = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"; // Biggest Hash
             status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
             status = this.updateZnodeNodeHash(escn, escn.nameHash);
+            escn.M1 = "null";
+            escn.M2 = "null";
+            escn.R1 = "null";
+            escn.R2 = "null";
+            this.updateZnodeM1M2R1R2(escn, "null", "null", "null", "null");
         } else {
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
