@@ -290,20 +290,22 @@ public class ECS implements Watcher{
 		String path = event.getPath();
 		path = path.substring(1,path.length());
 		JSONObject jsonMessage;
-		if (path == "fd") {
+		if (path.equals("fd")) {
 			jsonMessage = this.getJSON(path);
 	    	JSONArray failedServers = (JSONArray) jsonMessage.get("failed");
-	    	// Empty the fd node
-	    	JSONArray empty = new JSONArray();
-	    	jsonMessage.put("failed", empty);
-	        byte[] zkData = jsonMessage.toString().getBytes();
-	        try {
-				this.zk.setData("/fd", zkData, -1);
-			} catch (KeeperException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+	    	if (failedServers.size() != 0) {
+		    	// Empty the fd node
+		    	JSONArray empty = new JSONArray();
+		    	jsonMessage.put("failed", empty);
+		        byte[] zkData = jsonMessage.toString().getBytes();
+		        try {
+					this.zk.setData("/fd", zkData, -1);
+				} catch (KeeperException e) {
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+	    	}
 	        
 	    	// process the failed nodes
 	    	String failedServerName;
