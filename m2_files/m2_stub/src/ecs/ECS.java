@@ -310,13 +310,9 @@ public class ECS implements Watcher{
 	    	for (int i = 0; i < failedServers.size(); i++) {
 	    		failedServerName = (String)failedServers.get(i);
 	    		System.out.println("Handling failed server: " + failedServerName);
-	    		// Remove that server and start a new random server
+	    		// Restart the node via SSH
 	    		IECSNode failedServerNode = this.getNodeByKey(failedServerName);
-	    		this.removeNode(failedServerNode);
-	    		this.waitGeneric(1); // Wait for a while to start a new server
-	    		this.shutdownServer(failedServerNode);
-	    		// Add a new server
-	    		this.addNode("FIFO", 1024);
+	    		this.sshStartServer(failedServerNode);
 	    	}
 		} else {
 			jsonMessage = this.getJSON(path);
