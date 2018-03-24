@@ -32,7 +32,7 @@ public class KVStore implements KVCommInterface {
 	private String initial_address;
 	private int initial_port;
     private TreeMap<String, MetaDataEntry> metaData = new TreeMap<String, MetaDataEntry>();
-    private HashMap<AddressKey, Socket> socketMap = new HashMap<AddressKey, Socket>();
+    private HashMap<AddressPair, Socket> socketMap = new HashMap<AddressPair, Socket>();
     private Logger logger = Logger.getRootLogger();
     private MD5Hasher hasher;
     private HashSet<StatusType> retryStatuses = new HashSet<StatusType>();
@@ -57,7 +57,7 @@ public class KVStore implements KVCommInterface {
     @Override
     public void connect() throws UnknownHostException, IOException {
     	metaData = initializeMetadata(initial_address, initial_port);
-        socketMap.put(new AddressKey(initial_address, initial_port), new Socket(initial_address, initial_port));
+        socketMap.put(new AddressPair(initial_address, initial_port), new Socket(initial_address, initial_port));
     }
 
     @Override
@@ -118,11 +118,25 @@ public class KVStore implements KVCommInterface {
         return serverRequest(key, req);
     }
     
+    public KVMessage get(String key, String address, int port) throws UnknownHostException, IOException {
+    	TextMessage req = new TextMessage("GET", key, "");
+    	byte[] req_byte = req.getMsgBytes();
+    	Socket socket = socketMap.get(new AddressPair(address, port));
+        if (socket == null) {
+        	socket = connect(address, port);
+        }
+        OutputStream output = socket.getOutputStream();
+        InputStream input = socket.getInputStream();
+        output.write(req_byte, 0, req_byte.length);
+        output.flush();
+        return receiveMessage(input);
+    }
+    
     public TreeMap<String, MetaDataEntry> getMetadata() {
     	return metaData;
     }
     
-    public HashMap<AddressKey, Socket> getSocketMap() {
+    public HashMap<AddressPair, Socket> getSocketMap() {
     	return socketMap;
     }
     
@@ -131,7 +145,7 @@ public class KVStore implements KVCommInterface {
         MetaDataEntry metaDataEntry = getResponsibleServer(key, true);
         String address = metaDataEntry.serverHost;
         int port = metaDataEntry.serverPort;
-        Socket socket = socketMap.get(new AddressKey(address, port));
+        Socket socket = socketMap.get(new AddressPair(address, port));
         if (socket == null) {
         	socket = connect(address, port);
         }
@@ -152,7 +166,7 @@ public class KVStore implements KVCommInterface {
         			System.out.println(metaDataEntry.serverPort);
                     address = metaDataEntry.serverHost;
                     port = metaDataEntry.serverPort;
-                    socket = socketMap.get(new AddressKey(address, port));
+                    socket = socketMap.get(new AddressPair(address, port));
                     System.out.println("Got socket");
                     if (socket == null) {
                     	socket = connect(address, port);
@@ -168,10 +182,11 @@ public class KVStore implements KVCommInterface {
 	            output.write(req_byte, 0, req_byte.length);
 	            output.flush();
         	} catch (IOException e) {
+        		// Try to handle case where cached responsible server is down.
         		metaDataEntry = getResponsibleServer(metaDataEntry.rightHash, false);
                 address = metaDataEntry.serverHost;
                 port = metaDataEntry.serverPort;
-                socket = socketMap.get(new AddressKey(address, port));
+                socket = socketMap.get(new AddressPair(address, port));
                 if (socket == null) {
                 	socket = connect(address, port);
                 }
@@ -192,7 +207,7 @@ public class KVStore implements KVCommInterface {
     
     private Socket connect(String address, int port) throws UnknownHostException, IOException {
     	Socket socket = new Socket(address, port);
-    	socketMap.put(new AddressKey(address, port), socket);
+    	socketMap.put(new AddressPair(address, port), socket);
     	return socket;
     }
     
@@ -228,7 +243,7 @@ public class KVStore implements KVCommInterface {
     	}
     	// Close connections to servers that are no longer running.
     	for (Map.Entry<String, MetaDataEntry> entry : this.metaData.entrySet()) {
-    		AddressKey removedServerAddr = new AddressKey(entry.getValue().serverHost, entry.getValue().serverPort);
+    		AddressPair removedServerAddr = new AddressPair(entry.getValue().serverHost, entry.getValue().serverPort);
     		Socket removedServerConn = socketMap.get(removedServerAddr);
     		if (removedServerConn != null) {
 	    		try {
