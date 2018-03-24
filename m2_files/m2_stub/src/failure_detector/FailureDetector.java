@@ -118,7 +118,7 @@ public class FailureDetector {
         set.addAll(list1);
         set.addAll(list2);
 
-        return new ArrayList<T>(set);
+        return new ArrayList<String>(set);
     }
 	
 	@SuppressWarnings("unchecked")
