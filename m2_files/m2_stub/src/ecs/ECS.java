@@ -475,6 +475,7 @@ public class ECS implements Watcher{
     public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
+    	jsonMessage.put("failed", "");
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
