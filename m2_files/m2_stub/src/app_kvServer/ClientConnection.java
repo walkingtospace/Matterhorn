@@ -171,10 +171,10 @@ public class ClientConnection implements Runnable {
 	                            value = latestMsg.getValue();
 								try {
 									if (value.equals("")) {
-										boolean result = kvServer.deleteKV(key);
+										boolean result = kvServer.deleteKVReplica(key);
 		                                status = result ? StatusType.DELETE_SUCCESS : StatusType.DELETE_ERROR;
 									} else {
-										kvServer.putKV(key, value);
+										kvServer.putKVReplica(key, value);
 									}
 								} catch (Exception e) {
 									logger.error("Error! Unable to PUT key-value pair!", e);
