@@ -16,6 +16,7 @@ import org.json.simple.parser.ParseException;
 
 import client.AddressPair;
 import client.KVStore;
+import common.message.MetaDataEntry;
 
 public class FailureDetector {
 	private int intervalSeconds = 30;
@@ -77,6 +78,7 @@ public class FailureDetector {
     			System.out.println("znode: " + zNode);
     			String data = new String(zk.getData(zkPath + zNode, false, null));
                 JSONObject jsonMessage = decodeJsonStr(data);
+                System.out.println(data);
                 String serverState = (String)jsonMessage.get("State");
                 if (serverState.equals("START")) {
 	                String serverName = (String)jsonMessage.get("NodeName");
@@ -94,6 +96,9 @@ public class FailureDetector {
 		String data = new String(zk.getData(zkPath, false, null));
 		JSONObject jsonMessage = decodeJsonStr(data);
 		JSONArray prevFailedServers = (JSONArray) jsonMessage.get("Failed");
+		for (int i = 0; i < prevFailedServers.size(); i++) {
+    		String serverName = (String) prevFailedServers.get(i);
+    	}
 		System.out.println(data);  // TEMP
 		System.out.println(prevFailedServers);
 		//this.zk.setData(zkPath, zkData, -1);
