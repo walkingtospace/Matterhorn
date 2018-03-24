@@ -181,6 +181,7 @@ public class KVStore implements KVCommInterface {
 	            output.flush();
         	} catch (IOException e) {
         		// Try to handle case where cached responsible server is down.
+        		System.out.println("IOException!");
         		metaDataEntry = getResponsibleServer(metaDataEntry.rightHash, false);
                 address = metaDataEntry.serverHost;
                 port = metaDataEntry.serverPort;
