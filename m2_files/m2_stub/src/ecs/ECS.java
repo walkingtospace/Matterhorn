@@ -75,6 +75,10 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 		}
         
+        this.sshStartFD();
+
+        this.createFDNode();
+        
         // Need to remove
         // this.test();
     }
@@ -404,23 +408,38 @@ public class ECS implements Watcher{
 
     public boolean sshStartServer(IECSNode res) {
         System.out.println("Running SSH to start" + res.getNodeName());
-        return true;
-//        Process proc;
-//        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
-//        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
-//        command = command + " " + Integer.toString(this.zkPort);
-//        command = command + " " + res.getNodeName();
-//        Runtime run = Runtime.getRuntime();
-//        System.out.println(command);
-//        try {
-//          proc = run.exec(command);
-//          return true;
-//        } catch (IOException e) {
-//          e.printStackTrace();
-//          return false;
-//        }	
+        Process proc;
+        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
+        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
+        command = command + " " + Integer.toString(this.zkPort);
+        command = command + " " + res.getNodeName();
+        Runtime run = Runtime.getRuntime();
+        System.out.println(command);
+        try {
+          proc = run.exec(command);
+          return true;
+        } catch (IOException e) {
+          e.printStackTrace();
+          return false;
+        }	
     }
 
+    public boolean sshStartFD() {
+        System.out.println("Running SSH to start" + " Failure Detector");
+        Process proc;
+        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
+        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/fd.jar 5 0.0.0.0";
+        command = command + " " + Integer.toString(this.zkPort);
+        Runtime run = Runtime.getRuntime();
+        System.out.println(command);
+        try {
+          proc = run.exec(command);
+          return true;
+        } catch (IOException e) {
+          e.printStackTrace();
+          return false;
+        }	
+    }
 
     public IECSNode randomlyPickOneAvailServer() {
         Random rand = new Random();
@@ -453,6 +472,24 @@ public class ECS implements Watcher{
         return true;
     }
 
+    public boolean createFDNode() {
+    	String zkPath = "/" +"fd";
+    	JSONObject jsonMessage = new JSONObject();
+    	jsonMessage.put("failed", "");
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+				      CreateMode.PERSISTENT);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
 
     public boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
         // Set attributes
