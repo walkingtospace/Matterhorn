@@ -826,30 +826,34 @@ public class KVServer implements IKVServer, Watcher {
 				
 				String tempLeftHash, tempRightHash;
 				if (isMaster1Changed) {
-					try {
-						jsonMessage = this.retrieveZnodeData(this.master1Name);
-					} catch (Exception e) {
-						e.printStackTrace();
-						return;
-					}
-					tempLeftHash = (String) jsonMessage.get("LeftHash");
-					tempRightHash = (String) jsonMessage.get("RightHash");
-					if (!tempLeftHash.equals("-1")) {
-						this.deleteInRangeKey(tempLeftHash, tempRightHash);
+					if (this.master1Name != null) {
+						try {
+							jsonMessage = this.retrieveZnodeData(this.master1Name);
+						} catch (Exception e) {
+							e.printStackTrace();
+							return;
+						}
+						tempLeftHash = (String) jsonMessage.get("LeftHash");
+						tempRightHash = (String) jsonMessage.get("RightHash");
+						if (!tempLeftHash.equals("-1")) {
+							this.deleteInRangeKey(tempLeftHash, tempRightHash);
+						}
 					}
 					this.master1Name = newMaster1Name;
 				}
 				if (isMaster2Changed) {
-					try {
-						jsonMessage = this.retrieveZnodeData(this.master2Name);
-					} catch (Exception e) {
-						e.printStackTrace();
-						return;
-					}
-					tempLeftHash = (String) jsonMessage.get("LeftHash");
-					tempRightHash = (String) jsonMessage.get("RightHash");
-					if (!tempLeftHash.equals("-1")) {
-						this.deleteInRangeKey(tempLeftHash, tempRightHash);
+					if (this.master2Name != null) {
+						try {
+							jsonMessage = this.retrieveZnodeData(this.master2Name);
+						} catch (Exception e) {
+							e.printStackTrace();
+							return;
+						}
+						tempLeftHash = (String) jsonMessage.get("LeftHash");
+						tempRightHash = (String) jsonMessage.get("RightHash");
+						if (!tempLeftHash.equals("-1")) {
+							this.deleteInRangeKey(tempLeftHash, tempRightHash);
+						}
 					}
 					this.master2Name = newMaster2Name;
 				}

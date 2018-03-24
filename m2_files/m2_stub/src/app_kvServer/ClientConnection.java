@@ -53,13 +53,7 @@ public class ClientConnection implements Runnable {
     public void run() {
         try {
             output = clientSocket.getOutputStream();
-            input = clientSocket.getInputStream();
-        
-//          sendMessage(new TextMessage(
-//                  "Connection to MSRG Echo server established: " 
-//                  + clientSocket.getLocalAddress() + " / "
-//                  + clientSocket.getLocalPort()));
-            
+            input = clientSocket.getInputStream();            
             while(isOpen) {
                 try {
                     TextMessage latestMsg = receiveMessage();
@@ -252,13 +246,6 @@ public class ClientConnection implements Runnable {
         /* read first char from stream */
         byte read = (byte) input.read();    
         boolean reading = true;
-        
-//      logger.info("First Char: " + read);
-//      Check if stream is closed (read returns -1)
-//      if (read == -1){
-//          TextMessage msg = new TextMessage("");
-//          return msg;
-//      }
 
         while(/*read != 13  && */ read != 10 && read !=-1 && reading) {/* CR, LF, error */
             /* if buffer filled, copy to msg array */
@@ -308,7 +295,4 @@ public class ClientConnection implements Runnable {
                 + msg.getMsg().trim() + "'");
         return msg;
     }
-    
-
-    
 }
