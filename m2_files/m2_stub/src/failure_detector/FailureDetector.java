@@ -9,12 +9,14 @@ import java.util.Map;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import client.AddressPair;
 import client.KVStore;
+import common.message.MetaDataEntry;
 
 public class FailureDetector {
 	private int intervalSeconds = 30;
@@ -72,14 +74,18 @@ public class FailureDetector {
 		String zkPath = "/";
 		List<String> zNodes = zk.getChildren(zkPath, false);
     	for (String zNode: zNodes) {
-    		if (!zNode.equals("zookeeper")) {
+    		if (!zNode.equals("zookeeper") && !zNode.equals("fd")) {
     			System.out.println("znode: " + zNode);
     			String data = new String(zk.getData(zkPath + zNode, false, null));
                 JSONObject jsonMessage = decodeJsonStr(data);
-                String serverName = (String)jsonMessage.get("NodeName");
-                String serverHost = (String)jsonMessage.get("NodeHost");
-                int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
-                serverAddresses.put(serverName, new AddressPair(serverHost, serverPort));
+                System.out.println(data);
+                String serverState = (String)jsonMessage.get("State");
+                if (serverState.equals("START")) {
+	                String serverName = (String)jsonMessage.get("NodeName");
+	                String serverHost = (String)jsonMessage.get("NodeHost");
+	                int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
+	                serverAddresses.put(serverName, new AddressPair(serverHost, serverPort));
+                }
     		}
     	}
     	return serverAddresses;
@@ -88,7 +94,13 @@ public class FailureDetector {
 	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
 		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
+		JSONObject jsonMessage = decodeJsonStr(data);
+		JSONArray prevFailedServers = (JSONArray) jsonMessage.get("Failed");
+		for (int i = 0; i < prevFailedServers.size(); i++) {
+    		String serverName = (String) prevFailedServers.get(i);
+    	}
 		System.out.println(data);  // TEMP
+		System.out.println(prevFailedServers);
 		//this.zk.setData(zkPath, zkData, -1);
 		return true;
 	}

@@ -26,6 +26,7 @@ import java.security.Timestamp;
 import common.helper.MD5Hasher;
 
 // JSON
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -480,7 +481,8 @@ public class ECS implements Watcher{
     public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
-    	jsonMessage.put("failed", "");
+	JSONArray failedServers = new JSONArray();
+    	jsonMessage.put("failed", failedServers);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,

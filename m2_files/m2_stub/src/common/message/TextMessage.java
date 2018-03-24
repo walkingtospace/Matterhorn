@@ -39,7 +39,6 @@ public class TextMessage implements Serializable, KVMessage{
         isClient = true;
     }
     
-    
     public TextMessage(StatusType status, String key, String value) {
         jsonMessage = new JSONObject();
         this.jsonMessage.put("status", status.toString());

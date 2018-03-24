@@ -78,11 +78,6 @@ public class KVServer implements IKVServer, Watcher {
     public KVServer(String name,
                     String zkHostname,
                     int zkPort) {
-        /* KenNote: The func signature is different in M2 */
-    	this.master1Name = null;
-    	this.master2Name = null;
-    	this.replica1Name = null;
-    	this.replica2Name = null;
     	
     	this.replica1Client = null;
     	this.replica2Client = null;
@@ -145,35 +140,29 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     private MetaDataEntry fillUpMetaDataEntry(JSONObject jsonMessage) {
+    	
     	String serverHost = (String)jsonMessage.get("NodeHost");
         int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
-
+        if (leftHash.equals("-1"))
+        	return null;
         MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
         return metaDataEntry;
     }
     
     private void assignMasterAndReplica(JSONObject jsonMessage) {
-    	String intialMaster1Name =  (String) jsonMessage.get("M1");
-        String intialMaster2Name =  (String) jsonMessage.get("M2");
+    	this.master1Name =  (String) jsonMessage.get("M1");
+    	this.master2Name =  (String) jsonMessage.get("M2");
         
-        String intialReplica1Name =  (String) jsonMessage.get("R1");
-        String intialReplica2Name =  (String) jsonMessage.get("R2");
-        if (!intialMaster1Name.equals("null")) {
-        	this.master1Name = intialMaster1Name;
-        }
-        if (!intialMaster2Name.equals("null")) {
-        	this.master2Name = intialMaster2Name;
-        }
-        if (!intialReplica1Name.equals("null")) {
-        	this.replica1Name = intialReplica1Name;
-        	this.replica1Client = replicaData(intialReplica1Name);
-        }
-        if (!intialReplica2Name.equals("null")) {
-        	this.replica2Name = intialReplica2Name;
-        	this.replica2Client = replicaData(intialReplica2Name);
-        }
+    	this.replica1Name =  (String) jsonMessage.get("R1");
+    	this.replica2Name =  (String) jsonMessage.get("R2");
+    	if (!this.replica1Name.equals("null")) {
+    		this.replica1Client = replicaData(this.replica1Name);
+    	}
+    	if (!this.replica2Name.equals("null")) {
+    		this.replica2Client = replicaData(this.replica2Name);
+    	}
     }
     
     private JSONObject decodeJsonStr(String data) {
@@ -224,7 +213,8 @@ public class KVServer implements IKVServer, Watcher {
                 
                 
                 MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-                metaData.add(nodeMetaDataEntry);
+                if (nodeMetaDataEntry != null)
+                	metaData.add(nodeMetaDataEntry);
     		}
     	}
     	return metaData;
@@ -361,8 +351,8 @@ public class KVServer implements IKVServer, Watcher {
             }
             this.cache.set(key, value);
         }
-        key += ".kv";
-        File kvFile = new File(dbPath + key);
+        String fileName = key +".kv";
+        File kvFile = new File(dbPath + fileName);
         if (!kvFile.exists()) {
             try {
                 kvFile.createNewFile();
@@ -397,8 +387,8 @@ public class KVServer implements IKVServer, Watcher {
 		boolean result = false;
     	if (inCache(key))
     		this.cache.delete(key);
-    	key += ".kv";
-    	File kvFile = new File(dbPath + key);
+    	String fileName = key +".kv";
+    	File kvFile = new File(dbPath + fileName);
     	System.out.println("delete file in path: " + kvFile);
     	if (kvFile.exists()) {
     		kvFile.delete();
@@ -412,6 +402,7 @@ public class KVServer implements IKVServer, Watcher {
     
     
     private void remoteReplicate(String key, String value) {
+    	System.out.println("in remoteReplicate function");
     	try {
 	    	if (this.replica1Client != null) {
 	    		this.replica1Client.put(key, value);
@@ -598,7 +589,6 @@ public class KVServer implements IKVServer, Watcher {
 	                }
 	            }
 	        }
-//	        migrationClient.disconnect();
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
@@ -607,26 +597,6 @@ public class KVServer implements IKVServer, Watcher {
         return migrationClient;
     }
     
-//    private void notifyECS(String target) {
-//    	JSONObject jsonMessage = new JSONObject();
-//        jsonMessage.put("NodeName", this.name);
-//        jsonMessage.put("NodeHost", this.metaDataEntry.serverHost);
-//        jsonMessage.put("NodePort", Integer.toString(this.metaDataEntry.serverPort));
-//        jsonMessage.put("CacheStrategy", this.strategy.toString());
-//        jsonMessage.put("CacheSize", Integer.toString(this.cacheSize));
-//        jsonMessage.put("State", this.state);
-//        jsonMessage.put("NodeHash", hasher.hashString(this.name));
-//        jsonMessage.put("LeftHash", this.metaDataEntry.leftHash);
-//        jsonMessage.put("RightHash", this.metaDataEntry.rightHash);
-//        jsonMessage.put("Target", target);
-//        jsonMessage.put("Transfer", "OFF");
-//        byte[] zkData = jsonMessage.toString().getBytes();
-//        try {
-//			this.zk.setData(zkPath, zkData, -1);
-//		} catch (KeeperException | InterruptedException e) {
-//			e.printStackTrace();
-//		}
-//    }
     private void notifyECS(JSONObject jsonMessage) {
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
@@ -649,6 +619,14 @@ public class KVServer implements IKVServer, Watcher {
     }
     
     private void stopServer() {
+    	if (this.replica1Client != null) {
+    		this.replica1Client.disconnect();
+    		this.replica1Client = null;
+    	}
+    	if (this.replica2Client != null) {
+    		this.replica2Client.disconnect();
+    		this.replica2Client = null;
+    	}
         running = false;
         try {
             serverSocket.close();
@@ -712,8 +690,7 @@ public class KVServer implements IKVServer, Watcher {
 					if (this.isKeyInRange(key, leftHash, rightHash)) {
 						if (inCache(key))
 				    		cache.delete(key);
-				    	key += ".kv";
-				    	File kvFile = new File(dbPath + key);
+				    	File kvFile = new File(dbPath + fileName);
 				    	if (kvFile.exists()) {
 				    		kvFile.delete();
 				    	}
@@ -728,18 +705,22 @@ public class KVServer implements IKVServer, Watcher {
         return result;
     }
     
-    private boolean isTargetChanged(String oldTarget, String newTarget) {
-    	boolean result;
-    	if (oldTarget == null) {
-    		if (!newTarget.equals("null")) {
-    			result = true;
-    		} else {
-    			result = false;
-    		}
-    	} else {
-    		result = !oldTarget.equals(newTarget);
-    	}
-    	return result;
+//    private boolean isTargetChanged(String oldTarget, String newTarget) {
+//    	boolean result;
+//    	if (oldTarget == null) {
+//    		if (!newTarget.equals("null")) {
+//    			result = true;
+//    		} else {
+//    			result = false;
+//    		}
+//    	} else {
+//    		result = !oldTarget.equals(newTarget);
+//    	}
+//    	return result;
+//    }
+    
+    private void deleteReplica(String replicaName) {
+    	
     }
 
 	@Override
@@ -769,10 +750,10 @@ public class KVServer implements IKVServer, Watcher {
                 String newReplica2Name = (String) jsonMessage.get("R2");
                 
                 boolean isTransfer = !targetName.equals("null") && transferState.equals("ON");
-                boolean isMaster1Changed = this.isTargetChanged(this.master1Name, newMaster1Name);
-                boolean isMaster2Changed = this.isTargetChanged(this.master2Name, newMaster2Name);
-                boolean isReplica1Changed = this.isTargetChanged(this.replica1Name, newReplica1Name);
-                boolean isReplica2Changed = this.isTargetChanged(this.replica2Name, newReplica2Name);
+                boolean isMaster1Changed = !this.master1Name.equals(newMaster1Name);
+                boolean isMaster2Changed = !this.master2Name.equals(newMaster2Name);
+                boolean isReplica1Changed = !this.replica1Name.equals(newReplica1Name);
+                boolean isReplica2Changed = !this.replica2Name.equals(newReplica2Name);
                 
                 boolean isNodeDeleted = newLeftHash.equals("-1");
 				System.out.println(transferState);
@@ -826,7 +807,7 @@ public class KVServer implements IKVServer, Watcher {
 				
 				String tempLeftHash, tempRightHash;
 				if (isMaster1Changed) {
-					if (this.master1Name != null) {
+					if (!this.master1Name.equals("null")) {
 						try {
 							jsonMessage = this.retrieveZnodeData(this.master1Name);
 						} catch (Exception e) {
@@ -842,7 +823,7 @@ public class KVServer implements IKVServer, Watcher {
 					this.master1Name = newMaster1Name;
 				}
 				if (isMaster2Changed) {
-					if (this.master2Name != null) {
+					if (!this.master2Name.equals("null")) {
 						try {
 							jsonMessage = this.retrieveZnodeData(this.master2Name);
 						} catch (Exception e) {
@@ -860,18 +841,20 @@ public class KVServer implements IKVServer, Watcher {
 				if (isReplica1Changed) {
 					if (replica1Client != null)
 						this.replica1Client.disconnect();
-					this.replica1Client = this.replicaData(newReplica1Name);
-					if (replica1Client == null) {
-						System.out.println("replica data failed for replica 1, connection estibalished failed");
+					if (!newReplica1Name.equals("null")) {
+						this.replica1Client = this.replicaData(newReplica1Name);
+					} else {
+						this.replica1Client = null;
 					}
 					this.replica1Name = newReplica1Name;
 				}
 				if (isReplica2Changed) {	
 					if (replica2Client != null)
 						this.replica2Client.disconnect();
-					this.replica2Client = this.replicaData(newReplica2Name);
-					if (replica2Client == null) {
-						System.out.println("replica data failed for replica 2, connection estibalished failed");
+					if (!newReplica1Name.equals("null")) {
+						this.replica2Client = this.replicaData(newReplica2Name);
+					} else {
+						this.replica2Client = null;
 					}
 					this.replica2Name = newReplica2Name;
 				}
