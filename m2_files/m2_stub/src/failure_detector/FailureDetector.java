@@ -49,6 +49,7 @@ public class FailureDetector {
 		List<String> crashedServers = new ArrayList<String>();
 		for (Map.Entry<String, AddressPair> entry : serverAddresses.entrySet()) {
 			if (!checkConnection(entry.getValue())) {
+				System.out.println(entry.getKey() + " is not responding!");
 				crashedServers.add(entry.getKey());
 			}
 		}
@@ -85,7 +86,7 @@ public class FailureDetector {
 	}
 	
 	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
-		String zkPath = "/cd";
+		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
 		System.out.println(data);  // TEMP
 		//this.zk.setData(zkPath, zkData, -1);
