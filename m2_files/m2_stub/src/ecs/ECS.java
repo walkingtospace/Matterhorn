@@ -75,6 +75,10 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 		}
         
+        this.sshStartFD();
+
+        this.createFDNode();
+        
         // Need to remove
         // this.test();
     }
@@ -468,6 +472,23 @@ public class ECS implements Watcher{
         return true;
     }
 
+    public boolean createFDNode() {
+    	String zkPath = "/" +"fd";
+    	JSONObject jsonMessage = new JSONObject();
+        byte[] zkData = jsonMessage.toString().getBytes();
+        try {
+			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+				      CreateMode.PERSISTENT);
+		} catch (KeeperException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+        
+    	return true;
+    }
 
     public boolean createZnode(IECSNode escn, String cacheStrategy, int cacheSize) {
         // Set attributes
