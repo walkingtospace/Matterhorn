@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -76,10 +77,13 @@ public class FailureDetector {
     			System.out.println("znode: " + zNode);
     			String data = new String(zk.getData(zkPath + zNode, false, null));
                 JSONObject jsonMessage = decodeJsonStr(data);
-                String serverName = (String)jsonMessage.get("NodeName");
-                String serverHost = (String)jsonMessage.get("NodeHost");
-                int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
-                serverAddresses.put(serverName, new AddressPair(serverHost, serverPort));
+                String serverState = (String)jsonMessage.get("State");
+                if (serverState.equals("START")) {
+	                String serverName = (String)jsonMessage.get("NodeName");
+	                String serverHost = (String)jsonMessage.get("NodeHost");
+	                int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
+	                serverAddresses.put(serverName, new AddressPair(serverHost, serverPort));
+                }
     		}
     	}
     	return serverAddresses;
@@ -88,7 +92,10 @@ public class FailureDetector {
 	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
 		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
+		JSONObject jsonMessage = decodeJsonStr(data);
+		JSONArray prevFailedServers = (JSONArray) jsonMessage.get("Failed");
 		System.out.println(data);  // TEMP
+		System.out.println(prevFailedServers);
 		//this.zk.setData(zkPath, zkData, -1);
 		return true;
 	}
