@@ -77,9 +77,9 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 		}
         
-        this.sshStartFD();
-
-        this.createFDNode();
+//        this.sshStartFD();
+//
+//        this.createFDNode();
         
         // Need to remove
         // this.test();
@@ -290,20 +290,22 @@ public class ECS implements Watcher{
 		String path = event.getPath();
 		path = path.substring(1,path.length());
 		JSONObject jsonMessage;
-		if (path == "fd") {
+		if (path.equals("fd")) {
 			jsonMessage = this.getJSON(path);
 	    	JSONArray failedServers = (JSONArray) jsonMessage.get("failed");
-	    	// Empty the fd node
-	    	JSONArray empty = new JSONArray();
-	    	jsonMessage.put("failed", empty);
-	        byte[] zkData = jsonMessage.toString().getBytes();
-	        try {
-				this.zk.setData("/fd", zkData, -1);
-			} catch (KeeperException e) {
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+	    	if (failedServers.size() != 0) {
+		    	// Empty the fd node
+		    	JSONArray empty = new JSONArray();
+		    	jsonMessage.put("failed", empty);
+		        byte[] zkData = jsonMessage.toString().getBytes();
+		        try {
+					this.zk.setData("/fd", zkData, -1);
+				} catch (KeeperException e) {
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+	    	}
 	        
 	    	// process the failed nodes
 	    	String failedServerName;
@@ -338,6 +340,16 @@ public class ECS implements Watcher{
 	        	}
 	        }	
 		}
+		/*
+		try {
+			this.zk.getData("/zookeeper", this, null);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
     
     public JSONObject getJSON(String nodename) {
@@ -512,7 +524,8 @@ public class ECS implements Watcher{
         return true;
     }
 
-    public boolean createFDNode() {
+    @SuppressWarnings("unchecked")
+	public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
     	JSONArray failedServers = new JSONArray();
@@ -521,6 +534,7 @@ public class ECS implements Watcher{
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
 				      CreateMode.PERSISTENT);
+			this.zk.getData("/fd", this, null);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;

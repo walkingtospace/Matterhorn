@@ -121,10 +121,8 @@ public class KVStore implements KVCommInterface {
     public KVMessage get(String key, String address, int port) throws UnknownHostException, IOException {
     	TextMessage req = new TextMessage("GET", key, "");
     	byte[] req_byte = req.getMsgBytes();
-    	Socket socket = socketMap.get(new AddressPair(address, port));
-        if (socket == null) {
-        	socket = connect(address, port);
-        }
+    	// Always create new socket, in case server goes down.
+    	Socket socket = connect(address, port);
         OutputStream output = socket.getOutputStream();
         InputStream input = socket.getInputStream();
         output.write(req_byte, 0, req_byte.length);
