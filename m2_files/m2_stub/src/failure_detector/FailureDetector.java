@@ -58,8 +58,8 @@ public class FailureDetector {
 	
 	private boolean checkConnection(AddressPair addressPair) throws NoSuchAlgorithmException, IOException {
 		KVStore client = new KVStore(addressPair.getHost(), addressPair.getPort());
-    	client.connect();
     	try {
+    		client.connect();
     		client.get("test", addressPair.getHost(), addressPair.getPort());
     	} catch (IOException e) {
     		return false;
