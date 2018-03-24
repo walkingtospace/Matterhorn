@@ -713,16 +713,6 @@ public class ECS implements Watcher{
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
                 escn = (ECSNode)ringEntry.escn;
-                if(i == 0) {
-                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
-                	escn.rightHash = ringEntry.hashValue;
-                } else {
-                    // Last entry
-                	escn.leftHash = hashRing.get(i - 1).hashValue;
-                    escn.rightHash = hashRing.get(i).hashValue;
-                }
-                status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
-                status = this.updateZnodeNodeHash(escn, escn.nameHash);
                 
                 // Set M1, M2 and R1 and R2 for that particular node
                 int m1i = (i - 1) % numRingEntry;
@@ -754,6 +744,19 @@ public class ECS implements Watcher{
                 escn.R1 = r1name;
                 escn.R2 = r2name;
                 this.updateZnodeM1M2R1R2(escn, m1name, m2name, r1name, r2name);
+                
+                // Update Hash Range
+                if(i == 0) {
+                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
+                	escn.rightHash = ringEntry.hashValue;
+                } else {
+                    // Last entry
+                	escn.leftHash = hashRing.get(i - 1).hashValue;
+                    escn.rightHash = hashRing.get(i).hashValue;
+                }
+                status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+                status = this.updateZnodeNodeHash(escn, escn.nameHash);
+                
                 i++;
             }
         }
@@ -785,30 +788,6 @@ public class ECS implements Watcher{
             while(i < numRingEntry) {
                 ringEntry = this.hashRing.get(i);
                 escn = (ECSNode)ringEntry.escn;
-                if(i == 0) {
-                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
-                	escn.rightHash = ringEntry.hashValue;
-                } else {
-                    // Last entry
-                	escn.leftHash = hashRing.get(i - 1).hashValue;
-                    escn.rightHash = hashRing.get(i).hashValue;
-                }
-                if (i == rindex) {
-                	// receiver
-                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, escn.target, "ON");
-                	escn.transfer = "ON";
-                    status = this.updateZnodeNodeHash(escn, escn.nameHash);
-                } else if (i == sindex) {
-                	// sender
-                	escn.target = hashRing.get(rindex).escn.getNodeName();
-                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, hashRing.get(rindex).escn.getNodeName(), "ON");
-                	escn.transfer = "ON";
-                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
-
-                } else {
-                    status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
-                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
-                }
                 
                 // Set M1, M2 and R1 and R2 for that particular node
                 int m1i = (i - 1) % numRingEntry;
@@ -840,6 +819,32 @@ public class ECS implements Watcher{
                 escn.R1 = r1name;
                 escn.R2 = r2name;
                 this.updateZnodeM1M2R1R2(escn, m1name, m2name, r1name, r2name);
+                
+                // Set Hash Range and Transfer
+                if(i == 0) {
+                	escn.leftHash = hashRing.get(numRingEntry - 1).hashValue;
+                	escn.rightHash = ringEntry.hashValue;
+                } else {
+                    // Last entry
+                	escn.leftHash = hashRing.get(i - 1).hashValue;
+                    escn.rightHash = hashRing.get(i).hashValue;
+                }
+                if (i == rindex) {
+                	// receiver
+                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, escn.target, "ON");
+                	escn.transfer = "ON";
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);
+                } else if (i == sindex) {
+                	// sender
+                	escn.target = hashRing.get(rindex).escn.getNodeName();
+                	status = this.updateZnodeLeftRightHashTargetNodeTransfer(escn, escn.leftHash, escn.rightHash, hashRing.get(rindex).escn.getNodeName(), "ON");
+                	escn.transfer = "ON";
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+
+                } else {
+                    status = this.updateZnodeHash(escn, escn.leftHash, escn.rightHash);
+                    status = this.updateZnodeNodeHash(escn, escn.nameHash);	
+                }
                 i++;
             }
         }
