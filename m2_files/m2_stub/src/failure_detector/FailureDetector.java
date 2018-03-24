@@ -1,7 +1,6 @@
 package failure_detector;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import org.json.simple.parser.ParseException;
 
 import client.AddressPair;
 import client.KVStore;
-import common.message.KVMessage;
 
 public class FailureDetector {
 	private int intervalSeconds = 30;
@@ -28,6 +26,12 @@ public class FailureDetector {
 		this.intervalSeconds = intervalSeconds;
 		this.zkHostname = zkHostname;
 		this.zkPort = zkPort;
+		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + "/";
+		try {
+			this.zk = new ZooKeeper(connection, 3000, null);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	private void detect() throws InterruptedException, IOException, KeeperException, NoSuchAlgorithmException {
