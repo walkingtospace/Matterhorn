@@ -147,8 +147,8 @@ public class KVStore implements KVCommInterface {
         if (socket == null) {
         	socket = connect(address, port);
         }
-        OutputStream output = socket.getOutputStream();
-        InputStream input = socket.getInputStream();
+        OutputStream output;
+        InputStream input;
         int attempts = 0;
         TextMessage res = null;
         while (attempts < RETRY_ATTEMPTS && (res == null || retryStatuses.contains(res.getStatus()))) {
@@ -169,14 +169,12 @@ public class KVStore implements KVCommInterface {
                     if (socket == null) {
                     	socket = connect(address, port);
                     }
-                    System.out.println("Getting streams");
-                    output = socket.getOutputStream();
-                    input = socket.getInputStream();
-                    System.out.println("got streams");
         		}
         	}
         	System.out.println("Before OUTPUT");
         	try {
+        		output = socket.getOutputStream();
+                input = socket.getInputStream();
 	            output.write(req_byte, 0, req_byte.length);
 	            output.flush();
         	} catch (IOException e) {
