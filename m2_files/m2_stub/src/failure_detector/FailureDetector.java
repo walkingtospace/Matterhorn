@@ -18,7 +18,6 @@ import org.json.simple.parser.ParseException;
 
 import client.AddressPair;
 import client.KVStore;
-import common.message.MetaDataEntry;
 
 public class FailureDetector {
 	private int intervalSeconds = 30;

@@ -342,6 +342,16 @@ public class ECS implements Watcher{
 	        	}
 	        }	
 		}
+		/*
+		try {
+			this.zk.getData("/zookeeper", this, null);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
     
     public JSONObject getJSON(String nodename) {
@@ -516,7 +526,8 @@ public class ECS implements Watcher{
         return true;
     }
 
-    public boolean createFDNode() {
+    @SuppressWarnings("unchecked")
+	public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
     	JSONArray failedServers = new JSONArray();
@@ -525,6 +536,7 @@ public class ECS implements Watcher{
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
 				      CreateMode.PERSISTENT);
+			this.zk.getData("/fd", this, null);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
