@@ -74,7 +74,7 @@ public class FailureDetector {
 		String zkPath = "/";
 		List<String> zNodes = zk.getChildren(zkPath, false);
     	for (String zNode: zNodes) {
-    		if (!zNode.equals("zookeeper")) {
+    		if (!zNode.equals("zookeeper") && !zNode.equals("fd")) {
     			System.out.println("znode: " + zNode);
     			String data = new String(zk.getData(zkPath + zNode, false, null));
                 JSONObject jsonMessage = decodeJsonStr(data);
