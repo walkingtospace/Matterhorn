@@ -24,8 +24,10 @@ import java.security.Timestamp;
 
 // Internal Import
 import common.helper.MD5Hasher;
+import common.message.MetaDataEntry;
 
 // JSON
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -214,6 +216,17 @@ public class ECS implements Watcher{
     	return true;
     }
  
+    public boolean waitGeneric(int numSec) {
+    	try {
+    		System.out.println("Waiting transfer to be done");
+			Thread.sleep(numSec * 1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+    	return true;
+    }
+
     public Collection<IECSNode> setupNodes(int count, String cacheStrategy, int cacheSize) {
         // Create IECSNodes for the servers, but do not issue the ssh call to start the processes. Should be invoked by addNodes
         ArrayList<IECSNode> res = new ArrayList<IECSNode>();
@@ -276,28 +289,71 @@ public class ECS implements Watcher{
 		// Check which node has target
 		String path = event.getPath();
 		path = path.substring(1,path.length());
-		JSONObject jsonMessage = this.getJSON(path);
-        String targetname = (String)jsonMessage.get("Target");
-        String transfer = (String)jsonMessage.get("Transfer");
-        if (!targetname.equals("null") && transfer.equals("OFF")) {
-        	System.out.println("print incoing message");
-        	System.out.println(jsonMessage.toString());
-        	JSONObject jsonMessageTarget = this.getJSON(targetname);
-        	String transferTarget = (String)jsonMessageTarget.get("Transfer");
-        	if (transferTarget.equals("ON")) {
-        		System.out.println("pass condiction");
-        		IECSNode sender = this.getNodeByKey(path);
-        		IECSNode receiver = this.getNodeByKey(targetname);
-        		System.out.println("set stuff");
-        		((ECSNode)sender).target = "null";
-        		((ECSNode)sender).transfer = "OFF";
-        		System.out.println("HERHEHREHRHER");
-        		System.out.println(((ECSNode)this.getNodeByKey(path)).transfer);
-        		this.updateZnodeNodeTarget(sender, "null");
-        		((ECSNode)receiver).transfer = "OFF";
-        		this.updateZnodeNodeTransfer(receiver, "OFF");
-        	}
-        }
+		JSONObject jsonMessage;
+		if (path.equals("fd")) {
+			jsonMessage = this.getJSON(path);
+	    	JSONArray failedServers = (JSONArray) jsonMessage.get("failed");
+	    	if (failedServers.size() != 0) {
+		    	// Empty the fd node
+		    	JSONArray empty = new JSONArray();
+		    	jsonMessage.put("failed", empty);
+		        byte[] zkData = jsonMessage.toString().getBytes();
+		        try {
+					this.zk.setData("/fd", zkData, -1);
+				} catch (KeeperException e) {
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+	    	}
+	        
+	    	// process the failed nodes
+	    	String failedServerName;
+	    	for (int i = 0; i < failedServers.size(); i++) {
+	    		failedServerName = (String)failedServers.get(i);
+	    		System.out.println("Handling failed server: " + failedServerName);
+	    		// Remove that server and start a new random server
+	    		IECSNode failedServerNode = this.getNodeByKey(failedServerName);
+	    		this.removeNode(failedServerNode);
+	    		this.waitGeneric(1); // Wait for a while to start a new server
+	    		this.shutdownServer(failedServerNode);
+	    		// Add a new server
+	    		this.addNode("FIFO", 1024);
+	    	}
+		} else {
+			jsonMessage = this.getJSON(path);
+	        String targetname = (String)jsonMessage.get("Target");
+	        String transfer = (String)jsonMessage.get("Transfer");
+	        if (!targetname.equals("null") && transfer.equals("OFF")) {
+	        	System.out.println("print incoing message");
+	        	System.out.println(jsonMessage.toString());
+	        	JSONObject jsonMessageTarget = this.getJSON(targetname);
+	        	String transferTarget = (String)jsonMessageTarget.get("Transfer");
+	        	if (transferTarget.equals("ON")) {
+	        		System.out.println("pass condiction");
+	        		IECSNode sender = this.getNodeByKey(path);
+	        		IECSNode receiver = this.getNodeByKey(targetname);
+	        		System.out.println("set stuff");
+	        		((ECSNode)sender).target = "null";
+	        		((ECSNode)sender).transfer = "OFF";
+	        		System.out.println("HERHEHREHRHER");
+	        		System.out.println(((ECSNode)this.getNodeByKey(path)).transfer);
+	        		this.updateZnodeNodeTarget(sender, "null");
+	        		((ECSNode)receiver).transfer = "OFF";
+	        		this.updateZnodeNodeTransfer(receiver, "OFF");
+	        	}
+	        }	
+		}
+		/*
+		try {
+			this.zk.getData("/zookeeper", this, null);
+		} catch (KeeperException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
     
     public JSONObject getJSON(String nodename) {
@@ -472,14 +528,17 @@ public class ECS implements Watcher{
         return true;
     }
 
-    public boolean createFDNode() {
+    @SuppressWarnings("unchecked")
+	public boolean createFDNode() {
     	String zkPath = "/" +"fd";
     	JSONObject jsonMessage = new JSONObject();
-    	jsonMessage.put("failed", "");
+    	JSONArray failedServers = new JSONArray();
+    	jsonMessage.put("failed", failedServers);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
 				      CreateMode.PERSISTENT);
+			this.zk.getData("/fd", this, null);
 		} catch (KeeperException e) {
 			e.printStackTrace();
 			return false;
