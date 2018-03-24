@@ -24,6 +24,11 @@
   <property name="ecsjar.file"      value="m2-ecs.jar"/>
   <property name="ecsmanifest.file" value="ECS_MANIFEST.MF"/>
   <property name="ecsmain.class" value="app_kvECS.ECSClient"/>
+  
+  <!-- Configuration for failure detector application -->
+  <property name="fdjar.file"      value="fd.jar"/>
+  <property name="fdmanifest.file" value="FD_MANIFEST.MF"/>
+  <property name="fdmain.class" value="failure_detector.FailureDetector"/>
 
   <!-- path to libraries-->
   <path id="external.jars">
@@ -121,6 +126,24 @@
 
     <jar destfile="${ecsjar.file}" basedir="${build.dir}"
         manifest="${ecsmanifest.file}">
+      <fileset dir="${build.dir}" includes="**/*.class" />
+      <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
+    </jar>
+  </target>
+	
+  <!-- build failure_detector jar -->
+  <target name="build-fd-jar" depends="build">
+    <delete file="${fdjar.file}" />
+    <delete file="${fdmanifest.file}" />
+
+    <manifest file="${fdmanifest.file}" >
+      <attribute name="built-by" value="${user.name}" />
+      <attribute name="Main-Class" value="${fdmain.class}" />
+      <attribute name="Class-Path" value="${project.classpath}"/>
+    </manifest>
+
+    <jar destfile="${fdjar.file}" basedir="${build.dir}"
+        manifest="${fdmanifest.file}">
       <fileset dir="${build.dir}" includes="**/*.class" />
       <zipgroupfileset dir="${lib.dir}" includes="**/*.jar" />
     </jar>
