@@ -80,9 +80,6 @@ public class ECS implements Watcher{
         this.sshStartFD();
 
         this.createFDNode();
-        
-        // Need to remove
-        // this.test();
     }
 
     // Purely testing purpose. Should remove after everything is done
@@ -179,12 +176,12 @@ public class ECS implements Watcher{
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
         // SSH start server
-//        status = this.sshStartServer(availServer);
+        status = this.sshStartServer(availServer);
         
         // Wait until it is added
         try {
         	System.out.println("start server: " + status);
-			Thread.sleep(10000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
