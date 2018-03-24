@@ -93,6 +93,9 @@ public class FailureDetector {
 	}
 	
 	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
+		if (failedServers.size() == 0) {
+			return true;
+		}
 		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
 		JSONObject jsonMessage = decodeJsonStr(data);
@@ -103,9 +106,8 @@ public class FailureDetector {
     		prevFailedList.add(serverName);
     	}
 		List<String> unionFailed = union(failedServers, prevFailedList);
-		System.out.println(data);  // TEMP
-		System.out.println(prevFailedServers);
 		JSONObject failedServerJson = serializeFailedServers(unionFailed);
+		System.out.println(failedServerJson.toString());
 		byte[] zkData = failedServerJson.toString().getBytes();
 		this.zk.setData(zkPath, zkData, -1);
 		return true;
