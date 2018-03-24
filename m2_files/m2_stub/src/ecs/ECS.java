@@ -77,9 +77,9 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 		}
         
-        this.sshStartFD();
-
-        this.createFDNode();
+//        this.sshStartFD();
+//
+//        this.createFDNode();
         
         // Need to remove
         // this.test();

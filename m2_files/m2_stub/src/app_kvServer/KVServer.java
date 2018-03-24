@@ -53,6 +53,7 @@ public class KVServer implements IKVServer, Watcher {
     private KVCache cache;
     
     private String dbPath = "./db/";
+    private String replicaPath;
     private String zkPath = "/";
     private String zkHostname;
     private int zkPort;
@@ -95,6 +96,7 @@ public class KVServer implements IKVServer, Watcher {
         	System.out.println("Error! Can't create database folder");
         }
         this.dbPath += name + "/";
+        this.replicaPath = this.dbPath + "replica/";
         try {
 			hasher = new MD5Hasher();
 		} catch (NoSuchAlgorithmException e) {
@@ -145,8 +147,6 @@ public class KVServer implements IKVServer, Watcher {
         int serverPort = Integer.parseInt(jsonMessage.get("NodePort").toString());
         String leftHash = (String)jsonMessage.get("LeftHash");
         String rightHash = (String)jsonMessage.get("RightHash");
-        if (leftHash.equals("-1"))
-        	return null;
         MetaDataEntry metaDataEntry = new MetaDataEntry(name, serverHost, serverPort, leftHash, rightHash);
         return metaDataEntry;
     }
@@ -185,9 +185,11 @@ public class KVServer implements IKVServer, Watcher {
         this.strategy = CacheStrategy.valueOf(strategy);
         this.cache = createCache(this.strategy);
         	
-        File dbDir = new File(dbPath);
+        File dbDir = new File(this.dbPath);
+        File replicaDir = new File (this.replicaPath);
         try{
             dbDir.mkdir();
+            replicaDir.mkdir();
         }
         catch(SecurityException se){
 //            logger.error("Error! Can't create database folder");
@@ -202,7 +204,7 @@ public class KVServer implements IKVServer, Watcher {
     	ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
     	List<String> zNodes = rootZk.getChildren(zkPath, false);
     	for (String zNode: zNodes) {
-    		if (!zNode.equals("zookeeper")) {
+    		if (!zNode.equals("zookeeper") && !zNode.equals("fd")) {
     			System.out.println("znode: " + zNode);
         		byte[] raw_data = rootZk.getData(zkPath + zNode, false, null);
                 String data = new String(raw_data);
@@ -213,7 +215,7 @@ public class KVServer implements IKVServer, Watcher {
                 
                 
                 MetaDataEntry nodeMetaDataEntry = this.fillUpMetaDataEntry(jsonMessage);
-                if (nodeMetaDataEntry != null)
+                if (!nodeMetaDataEntry.leftHash.equals("-1"))
                 	metaData.add(nodeMetaDataEntry);
     		}
     	}
@@ -235,7 +237,7 @@ public class KVServer implements IKVServer, Watcher {
 			server = new KVServer(name, zkHostname, zkPort);
 			server.run();
 		} catch(Exception e) {
-			logger.error("Error! Can't start server");
+			e.printStackTrace();
 		} finally {
             server.close();
         }
@@ -378,26 +380,62 @@ public class KVServer implements IKVServer, Watcher {
                 "Error! reading file '" 
                 + key + "'");
         }
-        if (this.isKeyInRange(key, null, null))
-        	this.remoteReplicate(key, value);
+        this.remoteReplicate(key, value);
     }
     
     @Override
 	public boolean deleteKV(String key) throws Exception{
-		boolean result = false;
+    	boolean result = false;
     	if (inCache(key))
     		this.cache.delete(key);
     	String fileName = key +".kv";
-    	File kvFile = new File(dbPath + fileName);
+    	File kvFile = new File(this.dbPath + fileName);
     	System.out.println("delete file in path: " + kvFile);
     	if (kvFile.exists()) {
     		kvFile.delete();
     		result = true;
     	}
-    	if (this.isKeyInRange(key, null, null))
-    		this.remoteReplicate(key, "");
+    	this.remoteReplicate(key, "");
     	return result;
 	}
+    
+    public boolean deleteKVReplica(String key) throws Exception {
+    	String fileName = key +".kv";
+    	File kvFile = new File(this.replicaPath + fileName);
+    	System.out.println("delete file in path: " + kvFile);
+    	if (kvFile.exists()) {
+    		kvFile.delete();
+    	}
+    	return true;
+    }
+    
+    public void putKVReplica(String key, String value) throws Exception {
+    	String fileName = key +".kv";
+        File kvFile = new File(this.replicaPath + fileName);
+        if (!kvFile.exists()) {
+            try {
+                kvFile.createNewFile();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        } 
+        try {
+            FileWriter fileWriter = new FileWriter(kvFile);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(value);
+            bufferedWriter.close();
+        }
+        catch(FileNotFoundException ex) {
+            logger.error("Error! " +
+                "Unable to open kv file '" + 
+                key + "'" + ex);
+        }
+        catch(IOException ex) {
+            logger.error(
+                "Error! reading file '" 
+                + key + "'");
+        }
+    }
     
     
     
@@ -405,9 +443,11 @@ public class KVServer implements IKVServer, Watcher {
     	System.out.println("in remoteReplicate function");
     	try {
 	    	if (this.replica1Client != null) {
+	    		System.out.println("replica to: " + this.replica1Name);
 	    		this.replica1Client.put(key, value);
 	    	}
 	    	if (this.replica2Client != null) {
+	    		System.out.println("replica to: " + this.replica2Name);
 	    		this.replica2Client.put(key, value);
 	    	}
     	} catch(Exception e) {
@@ -678,14 +718,14 @@ public class KVServer implements IKVServer, Watcher {
         }
     }
     
-    private boolean deleteInRangeKey(String leftHash, String rightHash) {
+    private boolean deleteInRangeKeyReplica(String leftHash, String rightHash) {
     	File[] files = new File(dbPath).listFiles();
     	boolean result = true;
         for (File file: files) {
         	String fileName = file.getName();
             if (fileName.endsWith(".kv")) {
                 String key = fileName.substring(0, fileName.length() - 3);
-                System.out.println(key + " is deleted");
+                System.out.println(key + " is deleted in master");
             	try {
 					if (this.isKeyInRange(key, leftHash, rightHash)) {
 						if (inCache(key))
@@ -705,22 +745,87 @@ public class KVServer implements IKVServer, Watcher {
         return result;
     }
     
-//    private boolean isTargetChanged(String oldTarget, String newTarget) {
-//    	boolean result;
-//    	if (oldTarget == null) {
-//    		if (!newTarget.equals("null")) {
-//    			result = true;
-//    		} else {
-//    			result = false;
-//    		}
-//    	} else {
-//    		result = !oldTarget.equals(newTarget);
-//    	}
-//    	return result;
-//    }
+    private boolean deleteInRangeKeyLocal(String leftHash, String rightHash) {
+    	File[] files = new File(dbPath).listFiles();
+    	boolean result = true;
+        for (File file: files) {
+        	String fileName = file.getName();
+            if (fileName.endsWith(".kv")) {
+                String key = fileName.substring(0, fileName.length() - 3);
+                System.out.println(key + " is deleted");
+            	try {
+					if (this.isKeyInRange(key, leftHash, rightHash)) {
+						if (inCache(key))
+				    		cache.delete(key);
+				    	File kvFile = new File(dbPath + fileName);
+				    	if (kvFile.exists()) {
+				    		kvFile.delete();
+				    	}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+                
+            }
+        }
+        return result;
+    }
     
-    private void deleteReplica(String replicaName) {
-    	
+    private boolean deleteInRangeKeyRemote(String leftHash, String rightHash) {
+    	File[] files = new File(dbPath).listFiles();
+    	boolean result = true;
+        for (File file: files) {
+        	String fileName = file.getName();
+            if (fileName.endsWith(".kv")) {
+                String key = fileName.substring(0, fileName.length() - 3);
+                System.out.println(key + " is deleted");
+            	try {
+					if (this.isKeyInRange(key, leftHash, rightHash)) {
+						this.remoteReplicate(key, "");
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+                
+            }
+        }
+        return result;
+    }
+    
+    private void clearReplica() {
+    	File[] files = new File(this.replicaPath).listFiles();
+    	for (File file: files) {
+    		String fileName = file.getName();
+            if (fileName.endsWith(".kv")) {
+            	File kvFile = new File(this.replicaPath + fileName);
+            	kvFile.delete();
+            }
+    	}
+    }
+    
+    private boolean deleteInRangeKey(String leftHash, String rightHash) {
+    	File[] files = new File(dbPath).listFiles();
+    	boolean result = true;
+        for (File file: files) {
+        	String fileName = file.getName();
+            if (fileName.endsWith(".kv")) {
+                String key = fileName.substring(0, fileName.length() - 3);
+                System.out.println(key + " is deleted");
+            	try {
+					if (this.isKeyInRange(key, leftHash, rightHash)) {
+						if (inCache(key))
+				    		cache.delete(key);
+				    	File kvFile = new File(dbPath + fileName);
+				    	kvFile.delete();
+			    		this.remoteReplicate(key, "");
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+                
+            }
+        }
+        return result;
     }
 
 	@Override
@@ -785,6 +890,7 @@ public class KVServer implements IKVServer, Watcher {
 						hashRange[1] = newLeftHash;
 					}
 					System.out.println(hashRange);
+					this.deleteInRangeKeyRemote(hashRange[0], hashRange[1]);
 					boolean result;
 					try {
 						result = this.moveData(hashRange, targetName);
@@ -793,10 +899,11 @@ public class KVServer implements IKVServer, Watcher {
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
-					this.deleteInRangeKey(hashRange[0], hashRange[1]);
+					this.deleteInRangeKeyLocal(hashRange[0], hashRange[1]);
 					jsonMessage.put("Transfer", "OFF");
                 	this.notifyECS(jsonMessage);
                     if (isNodeDeleted) {
+                    	this.clearReplica();
                         this.close();
                         System.out.println("server is closed due to node is removed");
                     }
@@ -817,7 +924,7 @@ public class KVServer implements IKVServer, Watcher {
 						tempLeftHash = (String) jsonMessage.get("LeftHash");
 						tempRightHash = (String) jsonMessage.get("RightHash");
 						if (!tempLeftHash.equals("-1")) {
-							this.deleteInRangeKey(tempLeftHash, tempRightHash);
+							this.deleteInRangeKeyReplica(tempLeftHash, tempRightHash);
 						}
 					}
 					this.master1Name = newMaster1Name;
@@ -833,7 +940,7 @@ public class KVServer implements IKVServer, Watcher {
 						tempLeftHash = (String) jsonMessage.get("LeftHash");
 						tempRightHash = (String) jsonMessage.get("RightHash");
 						if (!tempLeftHash.equals("-1")) {
-							this.deleteInRangeKey(tempLeftHash, tempRightHash);
+							this.deleteInRangeKeyReplica(tempLeftHash, tempRightHash);
 						}
 					}
 					this.master2Name = newMaster2Name;
