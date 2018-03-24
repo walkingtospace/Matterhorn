@@ -276,28 +276,33 @@ public class ECS implements Watcher{
 		// Check which node has target
 		String path = event.getPath();
 		path = path.substring(1,path.length());
-		JSONObject jsonMessage = this.getJSON(path);
-        String targetname = (String)jsonMessage.get("Target");
-        String transfer = (String)jsonMessage.get("Transfer");
-        if (!targetname.equals("null") && transfer.equals("OFF")) {
-        	System.out.println("print incoing message");
-        	System.out.println(jsonMessage.toString());
-        	JSONObject jsonMessageTarget = this.getJSON(targetname);
-        	String transferTarget = (String)jsonMessageTarget.get("Transfer");
-        	if (transferTarget.equals("ON")) {
-        		System.out.println("pass condiction");
-        		IECSNode sender = this.getNodeByKey(path);
-        		IECSNode receiver = this.getNodeByKey(targetname);
-        		System.out.println("set stuff");
-        		((ECSNode)sender).target = "null";
-        		((ECSNode)sender).transfer = "OFF";
-        		System.out.println("HERHEHREHRHER");
-        		System.out.println(((ECSNode)this.getNodeByKey(path)).transfer);
-        		this.updateZnodeNodeTarget(sender, "null");
-        		((ECSNode)receiver).transfer = "OFF";
-        		this.updateZnodeNodeTransfer(receiver, "OFF");
-        	}
-        }
+		JSONObject jsonMessage;
+		if (path == "fd") {
+			jsonMessage = this.getJSON(path);
+		} else {
+			jsonMessage = this.getJSON(path);
+	        String targetname = (String)jsonMessage.get("Target");
+	        String transfer = (String)jsonMessage.get("Transfer");
+	        if (!targetname.equals("null") && transfer.equals("OFF")) {
+	        	System.out.println("print incoing message");
+	        	System.out.println(jsonMessage.toString());
+	        	JSONObject jsonMessageTarget = this.getJSON(targetname);
+	        	String transferTarget = (String)jsonMessageTarget.get("Transfer");
+	        	if (transferTarget.equals("ON")) {
+	        		System.out.println("pass condiction");
+	        		IECSNode sender = this.getNodeByKey(path);
+	        		IECSNode receiver = this.getNodeByKey(targetname);
+	        		System.out.println("set stuff");
+	        		((ECSNode)sender).target = "null";
+	        		((ECSNode)sender).transfer = "OFF";
+	        		System.out.println("HERHEHREHRHER");
+	        		System.out.println(((ECSNode)this.getNodeByKey(path)).transfer);
+	        		this.updateZnodeNodeTarget(sender, "null");
+	        		((ECSNode)receiver).transfer = "OFF";
+	        		this.updateZnodeNodeTransfer(receiver, "OFF");
+	        	}
+	        }	
+		}
     }
     
     public JSONObject getJSON(String nodename) {
