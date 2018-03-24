@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -95,14 +97,39 @@ public class FailureDetector {
 		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
 		JSONObject jsonMessage = decodeJsonStr(data);
-		JSONArray prevFailedServers = (JSONArray) jsonMessage.get("Failed");
+		JSONArray prevFailedServers = (JSONArray) jsonMessage.get("failed");
+		List<String> prevFailedList = new ArrayList<String>();
 		for (int i = 0; i < prevFailedServers.size(); i++) {
     		String serverName = (String) prevFailedServers.get(i);
+    		prevFailedList.add(serverName);
     	}
+		List<String> unionFailed = union(failedServers, prevFailedList);
 		System.out.println(data);  // TEMP
 		System.out.println(prevFailedServers);
-		//this.zk.setData(zkPath, zkData, -1);
+		JSONObject failedServerJson = serializeFailedServers(unionFailed);
+		byte[] zkData = failedServerJson.toString().getBytes();
+		this.zk.setData(zkPath, zkData, -1);
 		return true;
+	}
+	
+	private List<String> union(List<String> list1, List<String> list2) {
+        Set<String> set = new HashSet<String>();
+
+        set.addAll(list1);
+        set.addAll(list2);
+
+        return new ArrayList<String>(set);
+    }
+	
+	@SuppressWarnings("unchecked")
+	private JSONObject serializeFailedServers(List<String> failedServers) {
+		JSONObject jsonMessage = new JSONObject();
+		JSONArray serverArray = new JSONArray();
+		for (String serverName : failedServers) {
+			serverArray.add(serverName);
+		}
+		jsonMessage.put("failed", serverArray);
+		return jsonMessage;
 	}
 	
 	private JSONObject decodeJsonStr(String data) {
