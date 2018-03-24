@@ -11,14 +11,19 @@ import org.apache.zookeeper.ZooKeeper;
 import org.json.simple.JSONObject;
 import org.junit.Assert;
 
+import client.KVStore;
+
+import common.message.KVMessage;
 import common.message.MetaDataEntry;
+import common.message.KVMessage.StatusType;
 
 import app_kvServer.KVServer;
 import junit.framework.TestCase;
 
 public class ServerTest extends TestCase{
 	
-	public KVServer kvServer;
+	private KVServer kvServer;
+	private KVStore kvClient;
 	
 	public void testConnection() throws KeeperException, InterruptedException, IOException{
 		
@@ -31,6 +36,7 @@ public class ServerTest extends TestCase{
 		} else {
 			Assert.assertEquals("1", "0");
 		}
+		deleteDummyZNode("test1");
 	}
 	
 	public void testFillUpMetaData() throws KeeperException, InterruptedException, IOException {
@@ -39,6 +45,8 @@ public class ServerTest extends TestCase{
 		kvServer = new KVServer("test2", "0.0.0.0", 3200);
 		List<MetaDataEntry> metaData = kvServer.fillMetaData();
 		Assert.assertEquals(true, metaData.size() != 1);
+		deleteDummyZNode("test2");
+		deleteDummyZNode("test3");
 	}
 	
 	public void testIsKeyInRange() throws KeeperException, InterruptedException, IOException, NoSuchAlgorithmException {
@@ -49,6 +57,7 @@ public class ServerTest extends TestCase{
 		System.out.println(result1);
 		System.out.println(result2);
 		Assert.assertEquals(true, result1 && result2);
+		deleteDummyZNode("test4");
 	}
 	
 	public void testUpdate() throws KeeperException, InterruptedException, IOException, NoSuchAlgorithmException {
@@ -58,6 +67,50 @@ public class ServerTest extends TestCase{
 		kvServer.update(metaDataEntry);
 		
 		Assert.assertEquals(60005, kvServer.getPort());
+		deleteDummyZNode("test5");
+
+	}
+	
+	public void testStartAndStop() throws Exception {
+		createDummyZNode("test6", "60006");
+		kvServer = new KVServer("test6", "0.0.0.0", 3200);
+		kvServer.run();
+		kvClient = new KVStore("127.0.0.1", 60006);
+		kvClient.connect();
+		KVMessage result = kvClient.put("test", "test");
+		StatusType status = result.getStatus();
+		Assert.assertEquals(true, status == StatusType.SERVER_STOPPED);
+		kvServer.start();
+		result = kvClient.put("test", "test");
+		status = result.getStatus();
+		Assert.assertEquals(true, status == StatusType.PUT_SUCCESS);
+		kvServer.stop();
+		result = kvClient.get("test");
+		status = result.getStatus();
+		Assert.assertEquals(true, status == StatusType.SERVER_STOPPED);
+		kvClient.disconnect();
+		kvServer.close();
+		deleteDummyZNode("test6");
+	}
+	
+	public void testLockWrite() throws Exception {
+		createDummyZNode("test7", "60007");
+		kvServer = new KVServer("test7", "0.0.0.0", 3200);
+		kvServer.run();
+		kvClient = new KVStore("127.0.0.1", 60007);
+		kvClient.connect();
+		kvServer.start();
+		kvServer.lockWrite();
+		KVMessage result = kvClient.put("test", "test");
+		StatusType status = result.getStatus();
+		Assert.assertEquals(true, status == StatusType.SERVER_WRITE_LOCK);
+		kvServer.unlockWrite();
+		result = kvClient.put("test", "test");
+		status = result.getStatus();
+		Assert.assertEquals(true, status == StatusType.PUT_SUCCESS);
+		kvClient.disconnect();
+		kvServer.close();
+		deleteDummyZNode("test7");
 	}
 	
 	private void createDummyZNode(String nodeName, String nodePort) throws KeeperException, InterruptedException, IOException {
@@ -77,10 +130,27 @@ public class ServerTest extends TestCase{
         jsonMessage.put("RightHash", "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
         jsonMessage.put("Target", "null");
         jsonMessage.put("Transfer", "OFF");
+        jsonMessage.put("M1", "null");
+        jsonMessage.put("M2", "null");
+        jsonMessage.put("R1", "null");
+        jsonMessage.put("R2", "null");
         
         byte[] zkData = jsonMessage.toString().getBytes();
         zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
 			      CreateMode.PERSISTENT);
         zk.close();
+	}
+	
+	private void deleteDummyZNode (String nodeName) throws IOException {
+		String connection = "0.0.0.0:3200";
+		ZooKeeper zk = new ZooKeeper(connection, 3000, null);
+		String path = "/" + nodeName;
+    	try {
+			zk.delete(path,zk.exists(path,true).getVersion());
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (KeeperException e) {
+			e.printStackTrace();
+		}
 	}
 }

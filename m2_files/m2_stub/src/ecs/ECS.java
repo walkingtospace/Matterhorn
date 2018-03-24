@@ -404,21 +404,21 @@ public class ECS implements Watcher{
 
     public boolean sshStartServer(IECSNode res) {
         System.out.println("Running SSH to start" + res.getNodeName());
-        Process proc;
-        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
-        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
-        command = command + " " + Integer.toString(this.zkPort);
-        command = command + " " + res.getNodeName();
-//        command = command + " &";
-        Runtime run = Runtime.getRuntime();
-        System.out.println(command);
-        try {
-          proc = run.exec(command);
-          return true;
-        } catch (IOException e) {
-          e.printStackTrace();
-          return false;
-        }	
+        return true;
+//        Process proc;
+//        //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
+//        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/m2-server.jar 0.0.0.0";
+//        command = command + " " + Integer.toString(this.zkPort);
+//        command = command + " " + res.getNodeName();
+//        Runtime run = Runtime.getRuntime();
+//        System.out.println(command);
+//        try {
+//          proc = run.exec(command);
+//          return true;
+//        } catch (IOException e) {
+//          e.printStackTrace();
+//          return false;
+//        }	
     }
 
 
@@ -721,19 +721,34 @@ public class ECS implements Watcher{
                 
                 // Set M1, M2 and R1 and R2 for that particular node
                 int m1i = (i - 1) % numRingEntry;
+                if (m1i < 0 ) {
+                	m1i = numRingEntry + m1i;
+                }
                 String m1name = (m1i == i) ? "null" : this.hashRing.get(m1i).escn.getNodeName() ;
+                
                 int m2i = (i - 2) % numRingEntry;
+                if (m2i < 0 ) {
+                	m2i = numRingEntry + m2i;
+                }
                 String m2name = (m2i == i) ? "null" : this.hashRing.get(m2i).escn.getNodeName() ;
+                
                 int r1i = (i + 1) % numRingEntry;
+                if (r1i < 0 ) {
+                	r1i = numRingEntry + r1i;
+                }
                 String r1name = (r1i == i) ? "null" : this.hashRing.get(r1i).escn.getNodeName() ;
+                
                 int r2i = (i + 2) % numRingEntry;
+                if (r2i < 0 ) {
+                	r2i = numRingEntry + r2i;
+                }
                 String r2name = (r2i == i) ? "null" : this.hashRing.get(r2i).escn.getNodeName() ;
+                
                 escn.M1 = m1name;
                 escn.M2 = m2name;
                 escn.R1 = r1name;
                 escn.R2 = r2name;
                 this.updateZnodeM1M2R1R2(escn, m1name, m2name, r1name, r2name);
-                i++;
                 i++;
             }
         }
@@ -787,13 +802,29 @@ public class ECS implements Watcher{
                 
                 // Set M1, M2 and R1 and R2 for that particular node
                 int m1i = (i - 1) % numRingEntry;
+                if (m1i < 0 ) {
+                	m1i = numRingEntry + m1i;
+                }
                 String m1name = (m1i == i) ? "null" : this.hashRing.get(m1i).escn.getNodeName() ;
+                
                 int m2i = (i - 2) % numRingEntry;
+                if (m2i < 0 ) {
+                	m2i = numRingEntry + m2i;
+                }
                 String m2name = (m2i == i) ? "null" : this.hashRing.get(m2i).escn.getNodeName() ;
+                
                 int r1i = (i + 1) % numRingEntry;
+                if (r1i < 0 ) {
+                	r1i = numRingEntry + r1i;
+                }
                 String r1name = (r1i == i) ? "null" : this.hashRing.get(r1i).escn.getNodeName() ;
+                
                 int r2i = (i + 2) % numRingEntry;
+                if (r2i < 0 ) {
+                	r2i = numRingEntry + r2i;
+                }
                 String r2name = (r2i == i) ? "null" : this.hashRing.get(r2i).escn.getNodeName() ;
+                
                 escn.M1 = m1name;
                 escn.M2 = m2name;
                 escn.R1 = r1name;

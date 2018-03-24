@@ -355,11 +355,11 @@ public class KVServer implements IKVServer, Watcher {
         if (cache != null) {
             if (value == cache.get(key)) {
                 // Update recency in case of LRU or count in case of LFU.
-                cache.set(key, value);
+                this.cache.set(key, value);
                 // Avoid writing to DB.
                 return;
             }
-            cache.set(key, value);
+            this.cache.set(key, value);
         }
         key += ".kv";
         File kvFile = new File(dbPath + key);
@@ -396,7 +396,7 @@ public class KVServer implements IKVServer, Watcher {
 	public boolean deleteKV(String key) throws Exception{
 		boolean result = false;
     	if (inCache(key))
-    		cache.delete(key);
+    		this.cache.delete(key);
     	key += ".kv";
     	File kvFile = new File(dbPath + key);
     	System.out.println("delete file in path: " + kvFile);
@@ -427,7 +427,7 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void clearCache(){
-        cache = createCache(strategy);
+        this.cache = createCache(strategy);
     }
 
 
@@ -474,13 +474,13 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void kill(){
-        stopServer();
+        this.stopServer();
     }
 
 
     @Override
     public void close(){
-        stopServer();
+        this.stopServer();
     }
 
 
@@ -498,17 +498,17 @@ public class KVServer implements IKVServer, Watcher {
 
     @Override
     public void lockWrite() {
-    	writeLock = true;
+    	this.writeLock = true;
     }
 
 
     @Override
     public void unlockWrite() {
-    	writeLock = false;
+    	this.writeLock = false;
     }
     
     public boolean isLocked() {
-    	return writeLock;
+    	return this.writeLock;
     }
     
     @Override
@@ -727,6 +727,20 @@ public class KVServer implements IKVServer, Watcher {
         }
         return result;
     }
+    
+    private boolean isTargetChanged(String oldTarget, String newTarget) {
+    	boolean result;
+    	if (oldTarget == null) {
+    		if (!newTarget.equals("null")) {
+    			result = true;
+    		} else {
+    			result = false;
+    		}
+    	} else {
+    		result = !oldTarget.equals(newTarget);
+    	}
+    	return result;
+    }
 
 	@Override
 	public void process(WatchedEvent event) {
@@ -755,10 +769,10 @@ public class KVServer implements IKVServer, Watcher {
                 String newReplica2Name = (String) jsonMessage.get("R2");
                 
                 boolean isTransfer = !targetName.equals("null") && transferState.equals("ON");
-                boolean isMaster1Changed = (this.master1Name == null && !newMaster1Name.equals("null")) || !newMaster1Name.equals(this.master1Name);
-                boolean isMaster2Changed = (this.master2Name == null && !newMaster2Name.equals("null")) || !newMaster2Name.equals(this.master2Name);
-                boolean isReplica1Changed = (this.replica1Name == null && !newReplica1Name.equals("null")) || !newReplica1Name.equals(this.replica1Name);
-                boolean isReplica2Changed = (this.replica2Name == null && !newReplica2Name.equals("null")) || !newReplica2Name.equals(this.replica2Name);
+                boolean isMaster1Changed = this.isTargetChanged(this.master1Name, newMaster1Name);
+                boolean isMaster2Changed = this.isTargetChanged(this.master2Name, newMaster2Name);
+                boolean isReplica1Changed = this.isTargetChanged(this.replica1Name, newReplica1Name);
+                boolean isReplica2Changed = this.isTargetChanged(this.replica2Name, newReplica2Name);
                 
                 boolean isNodeDeleted = newLeftHash.equals("-1");
 				System.out.println(transferState);
@@ -839,7 +853,6 @@ public class KVServer implements IKVServer, Watcher {
 					}
 					this.master2Name = newMaster2Name;
 				}
-
 				if (isReplica1Changed) {
 					if (replica1Client != null)
 						this.replica1Client.disconnect();
