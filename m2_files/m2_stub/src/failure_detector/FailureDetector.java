@@ -82,7 +82,8 @@ public class FailureDetector {
 	
 	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
 		String zkPath = "/cd";
-		byte[] raw_data = zk.getData(zkPath, false, null);
+		String data = new String(zk.getData(zkPath, false, null));
+		System.out.println(data);  // TEMP
 		//this.zk.setData(zkPath, zkData, -1);
 		return true;
 	}
