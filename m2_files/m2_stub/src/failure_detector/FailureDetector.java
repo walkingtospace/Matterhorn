@@ -54,7 +54,7 @@ public class FailureDetector implements Watcher{
 		return crashedServers;
 	}
 	
-	private boolean checkConnection(AddressPair addressPair) throws NoSuchAlgorithmException, IOException {
+	public boolean checkConnection(AddressPair addressPair) throws NoSuchAlgorithmException {
 		KVStore client = new KVStore(addressPair.getHost(), addressPair.getPort());
     	try {
     		client.connect();
@@ -126,7 +126,7 @@ public class FailureDetector implements Watcher{
     }
 	
 	@SuppressWarnings("unchecked")
-	private JSONObject serializeFailedServers(List<String> failedServers) {
+	public JSONObject serializeFailedServers(List<String> failedServers) {
 		JSONObject jsonMessage = new JSONObject();
 		JSONArray serverArray = new JSONArray();
 		for (String serverName : failedServers) {
