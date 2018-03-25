@@ -30,12 +30,6 @@ public class FailureDetector implements Watcher{
 		this.intervalSeconds = intervalSeconds;
 		this.zkHostname = zkHostname;
 		this.zkPort = zkPort;
-		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + "/";
-		try {
-			this.zk = new ZooKeeper(connection, 3000, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	private void detect() throws InterruptedException, IOException, KeeperException, NoSuchAlgorithmException {
