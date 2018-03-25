@@ -179,7 +179,7 @@ public class ECS implements Watcher{
         // Create Znode on ZK
         status = this.createZnode(availServer, cacheStrategy, cacheSize);
         // SSH start server
-//        status = this.sshStartServer(availServer);
+        status = this.sshStartServer(availServer);
         
         // Wait until it is added
         try {
