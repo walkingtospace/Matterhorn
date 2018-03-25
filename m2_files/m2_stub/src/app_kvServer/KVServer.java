@@ -675,6 +675,11 @@ public class KVServer implements IKVServer, Watcher {
             //         "Unable to close socket on port: " + getPort(), e);
         	System.out.println("Error! " + "Unable to close socket on port: " + getPort());
         }
+        try {
+			zk.close();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
     }
 
 
