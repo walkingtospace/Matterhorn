@@ -143,12 +143,13 @@ public class KVStore implements KVCommInterface {
         MetaDataEntry metaDataEntry = getResponsibleServer(key, true);
         String address = metaDataEntry.serverHost;
         int port = metaDataEntry.serverPort;
-        Socket socket = socketMap.get(new AddressPair(address, port));
+        /*Socket socket = socketMap.get(new AddressPair(address, port));
         if (socket == null) {
         	socket = connect(address, port);
-        }
-        OutputStream output = socket.getOutputStream();
-        InputStream input = socket.getInputStream();
+        }*/
+        Socket socket = connect(address, port);
+        OutputStream output;
+        InputStream input;
         int attempts = 0;
         TextMessage res = null;
         while (attempts < RETRY_ATTEMPTS && (res == null || retryStatuses.contains(res.getStatus()))) {
@@ -164,19 +165,18 @@ public class KVStore implements KVCommInterface {
         			System.out.println(metaDataEntry.serverPort);
                     address = metaDataEntry.serverHost;
                     port = metaDataEntry.serverPort;
-                    socket = socketMap.get(new AddressPair(address, port));
+                    /*socket = socketMap.get(new AddressPair(address, port));
                     System.out.println("Got socket");
                     if (socket == null) {
                     	socket = connect(address, port);
-                    }
-                    System.out.println("Getting streams");
-                    output = socket.getOutputStream();
-                    input = socket.getInputStream();
-                    System.out.println("got streams");
+                    }*/
+                    socket = connect(address, port);
         		}
         	}
         	System.out.println("Before OUTPUT");
         	try {
+        		output = socket.getOutputStream();
+                input = socket.getInputStream();
 	            output.write(req_byte, 0, req_byte.length);
 	            output.flush();
         	} catch (IOException e) {
@@ -185,10 +185,11 @@ public class KVStore implements KVCommInterface {
         		metaDataEntry = getResponsibleServer(metaDataEntry.rightHash, false);
                 address = metaDataEntry.serverHost;
                 port = metaDataEntry.serverPort;
-                socket = socketMap.get(new AddressPair(address, port));
+                /*socket = socketMap.get(new AddressPair(address, port));
                 if (socket == null) {
                 	socket = connect(address, port);
-                }
+                }*/
+                socket = connect(address, port);
                 output = socket.getOutputStream();
                 input = socket.getInputStream();
                 output.write(req_byte, 0, req_byte.length);

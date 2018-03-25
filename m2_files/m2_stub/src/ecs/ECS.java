@@ -80,9 +80,6 @@ public class ECS implements Watcher{
         this.sshStartFD();
 
         this.createFDNode();
-        
-        // Need to remove
-        // this.test();
     }
 
     // Purely testing purpose. Should remove after everything is done
@@ -184,7 +181,7 @@ public class ECS implements Watcher{
         // Wait until it is added
         try {
         	System.out.println("start server: " + status);
-			Thread.sleep(10000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -259,6 +256,8 @@ public class ECS implements Watcher{
 
 
     public boolean removeNode(IECSNode ecsn) {
+    	((ECSNode)ecsn).state = "STOP";
+    	this.updateZnodeState(ecsn, "STOP");
     	this.removeESCNodeFromHashRing(ecsn);
     	this.recalculateHashRange();
     	this.waitTransfer();
@@ -315,6 +314,7 @@ public class ECS implements Watcher{
 	    		// Restart the node via SSH
 	    		IECSNode failedServerNode = this.getNodeByKey(failedServerName);
 	    		this.sshStartServer(failedServerNode);
+			this.updateZnodeState(failedServerNode, "START");
 	    	}
 		} else {
 			jsonMessage = this.getJSON(path);
@@ -480,7 +480,7 @@ public class ECS implements Watcher{
         System.out.println("Running SSH to start" + " Failure Detector");
         Process proc;
         //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
-        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/fd.jar 5 0.0.0.0";
+        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/fd.jar 10 0.0.0.0";
         command = command + " " + Integer.toString(this.zkPort);
         Runtime run = Runtime.getRuntime();
         System.out.println(command);

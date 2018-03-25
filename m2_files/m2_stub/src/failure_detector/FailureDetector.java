@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -19,22 +21,15 @@ import org.json.simple.parser.ParseException;
 import client.AddressPair;
 import client.KVStore;
 
-public class FailureDetector {
+public class FailureDetector implements Watcher{
 	private int intervalSeconds = 30;
 	private String zkHostname;
 	private int zkPort;
-	private ZooKeeper zk;
 	
 	public FailureDetector(int intervalSeconds, String zkHostname, int zkPort) {
 		this.intervalSeconds = intervalSeconds;
 		this.zkHostname = zkHostname;
 		this.zkPort = zkPort;
-		String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + "/";
-		try {
-			this.zk = new ZooKeeper(connection, 3000, null);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	private void detect() throws InterruptedException, IOException, KeeperException, NoSuchAlgorithmException {
@@ -73,11 +68,16 @@ public class FailureDetector {
 	private HashMap<String, AddressPair> getServerAddresses() throws IOException, KeeperException, InterruptedException {
 		HashMap<String, AddressPair> serverAddresses = new HashMap<String, AddressPair>();
 		String zkPath = "/";
+		String connection = zkHostname + ":" + Integer.toString(zkPort) + zkPath;
+        ZooKeeper zk = new ZooKeeper(connection, 3000, this);
 		List<String> zNodes = zk.getChildren(zkPath, false);
+		zk.close();
     	for (String zNode: zNodes) {
     		if (!zNode.equals("zookeeper") && !zNode.equals("fd")) {
     			System.out.println("znode: " + zNode);
-    			String data = new String(zk.getData(zkPath + zNode, false, null));
+    			ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
+    			String data = new String(rootZk.getData(zkPath + zNode, false, null));
+    			rootZk.close();
                 JSONObject jsonMessage = decodeJsonStr(data);
                 System.out.println(data);
                 String serverState = (String)jsonMessage.get("State");
@@ -92,10 +92,12 @@ public class FailureDetector {
     	return serverAddresses;
 	}
 	
-	private boolean notifyZookeeper(List<String> failedServers) throws KeeperException, InterruptedException {
+	private boolean notifyZookeeper(List<String> failedServers) throws IOException, KeeperException, InterruptedException {
 		if (failedServers.size() == 0) {
 			return true;
 		}
+		String connection = zkHostname + ":" + Integer.toString(zkPort) + "/";
+        ZooKeeper zk = new ZooKeeper(connection, 3000, this);
 		String zkPath = "/fd";
 		String data = new String(zk.getData(zkPath, false, null));
 		JSONObject jsonMessage = decodeJsonStr(data);
@@ -109,11 +111,12 @@ public class FailureDetector {
 		JSONObject failedServerJson = serializeFailedServers(unionFailed);
 		System.out.println(failedServerJson.toString());
 		byte[] zkData = failedServerJson.toString().getBytes();
-		this.zk.setData(zkPath, zkData, -1);
+		zk.setData(zkPath, zkData, -1);
+		zk.close();
 		return true;
 	}
 	
-	private List<String> union(List<String> list1, List<String> list2) {
+	public List<String> union(List<String> list1, List<String> list2) {
         Set<String> set = new HashSet<String>();
 
         set.addAll(list1);
@@ -159,5 +162,11 @@ public class FailureDetector {
 			e.printStackTrace();
             System.exit(1);
 		}
+	}
+
+	@Override
+	public void process(WatchedEvent event) {
+		// TODO Auto-generated method stub
+		
 	}
 }
