@@ -256,10 +256,10 @@ public class ECS implements Watcher{
 
 
     public boolean removeNode(IECSNode ecsn) {
-    	this.removeESCNodeFromHashRing(ecsn);
-    	this.recalculateHashRange();
     	((ECSNode)ecsn).state = "STOP";
     	this.updateZnodeState(ecsn, "STOP");
+    	this.removeESCNodeFromHashRing(ecsn);
+    	this.recalculateHashRange();
     	this.waitTransfer();
     	return true;
     }
@@ -314,6 +314,7 @@ public class ECS implements Watcher{
 	    		// Restart the node via SSH
 	    		IECSNode failedServerNode = this.getNodeByKey(failedServerName);
 	    		this.sshStartServer(failedServerNode);
+			this.updateZnodeState(failedServerNode, "START");
 	    	}
 		} else {
 			jsonMessage = this.getJSON(path);
