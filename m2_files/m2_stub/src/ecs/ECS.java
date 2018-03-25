@@ -479,7 +479,7 @@ public class ECS implements Watcher{
         System.out.println("Running SSH to start" + " Failure Detector");
         Process proc;
         //String command = "ssh -n <username>@localhost nohup java -jar java -jar m2-server.jar 0.0.0.0 3200 &";
-        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/fd.jar 5 0.0.0.0";
+        String command = "ssh 0.0.0.0 java -jar ~/ECE419/Matterhorn/m2_files/m2_stub/fd.jar 10 0.0.0.0";
         command = command + " " + Integer.toString(this.zkPort);
         Runtime run = Runtime.getRuntime();
         System.out.println(command);
