@@ -258,6 +258,8 @@ public class ECS implements Watcher{
     public boolean removeNode(IECSNode ecsn) {
     	this.removeESCNodeFromHashRing(ecsn);
     	this.recalculateHashRange();
+    	((ECSNode)ecsn).state = "STOP";
+    	this.updateZnodeState(ecsn, "STOP");
     	this.waitTransfer();
     	return true;
     }
