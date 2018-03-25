@@ -79,7 +79,10 @@ public class FailureDetector implements Watcher{
     	for (String zNode: zNodes) {
     		if (!zNode.equals("zookeeper") && !zNode.equals("fd")) {
     			System.out.println("znode: " + zNode);
-    			String data = new String(zk.getData(zkPath + zNode, false, null));
+    			String connection = this.zkHostname + ":" + Integer.toString(this.zkPort) + zkPath;
+    			ZooKeeper rootZk = new ZooKeeper(connection, 3000, null);
+    			String data = new String(rootZk.getData(zkPath + zNode, false, null));
+    			rootZk.close();
                 JSONObject jsonMessage = decodeJsonStr(data);
                 System.out.println(data);
                 String serverState = (String)jsonMessage.get("State");
