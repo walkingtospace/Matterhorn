@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -19,7 +21,7 @@ import org.json.simple.parser.ParseException;
 import client.AddressPair;
 import client.KVStore;
 
-public class FailureDetector {
+public class FailureDetector implements Watcher{
 	private int intervalSeconds = 30;
 	private String zkHostname;
 	private int zkPort;
@@ -113,7 +115,7 @@ public class FailureDetector {
 		return true;
 	}
 	
-	private List<String> union(List<String> list1, List<String> list2) {
+	public List<String> union(List<String> list1, List<String> list2) {
         Set<String> set = new HashSet<String>();
 
         set.addAll(list1);
@@ -159,5 +161,11 @@ public class FailureDetector {
 			e.printStackTrace();
             System.exit(1);
 		}
+	}
+
+	@Override
+	public void process(WatchedEvent event) {
+		// TODO Auto-generated method stub
+		
 	}
 }
