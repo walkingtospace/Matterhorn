@@ -861,7 +861,7 @@ public class KVServer implements IKVServer, Watcher {
     	int keyCount = 0;
         for (File file: files) {
             if (file.toString().endsWith(".kv")) {
-                keyCount += 1
+                keyCount += 1;
             }
         }
     	return keyCount;
