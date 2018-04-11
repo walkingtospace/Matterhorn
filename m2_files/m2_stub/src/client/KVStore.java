@@ -44,7 +44,7 @@ public class KVStore implements KVCommInterface {
     private static final int RETRY_ATTEMPTS = 20;
     private static final int RETRY_SLEEP_MS = 50;
     
-    public KVStore(String input_address, int input_port) throws IOException, NoSuchAlgorithmException {
+    public KVStore(String input_address, int input_port) throws NoSuchAlgorithmException {
     	initial_address = input_address;
     	initial_port = input_port;
         hasher = new MD5Hasher();

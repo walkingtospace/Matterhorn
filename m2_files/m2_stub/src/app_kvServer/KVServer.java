@@ -355,6 +355,7 @@ public class KVServer implements IKVServer, Watcher {
         }
         String fileName = key +".kv";
         File kvFile = new File(dbPath + fileName);
+        int loadChange = 0;
         if (!kvFile.exists()) {
             try {
                 kvFile.createNewFile();
@@ -363,6 +364,7 @@ public class KVServer implements IKVServer, Watcher {
                         "Unable to create key-value file '" + 
                         key + "'");  
             }
+            loadChange = 1;
         } 
         try {
             FileWriter fileWriter = new FileWriter(kvFile);
@@ -381,6 +383,23 @@ public class KVServer implements IKVServer, Watcher {
                 + key + "'");
         }
         this.remoteReplicate(key, value);
+
+        this.notifyECSLoad(loadChange);
+    }
+    
+    private void notifyECSLoad(int loadChange) {
+    	if (loadChange == 0)
+    		return;
+    	JSONObject jsonMessage;
+		try {
+			jsonMessage = this.retrieveZnodeData("");
+		} catch (IOException | KeeperException | InterruptedException e1) {
+			e1.printStackTrace();
+			return;
+		}
+		int newLoad = Integer.parseInt(jsonMessage.get("numKey").toString()) + loadChange;
+		jsonMessage.put("numKey", Integer.toString(newLoad));
+		this.notifyECS(jsonMessage);
     }
     
     @Override
@@ -391,11 +410,15 @@ public class KVServer implements IKVServer, Watcher {
     	String fileName = key +".kv";
     	File kvFile = new File(this.dbPath + fileName);
     	System.out.println("delete file in path: " + kvFile);
+    	int loadChange = 0;
     	if (kvFile.exists()) {
     		kvFile.delete();
     		result = true;
+    		loadChange = -1;
     	}
     	this.remoteReplicate(key, "");
+    	
+    	this.notifyECSLoad(loadChange);
     	return result;
 	}
     
@@ -675,6 +698,11 @@ public class KVServer implements IKVServer, Watcher {
             //         "Unable to close socket on port: " + getPort(), e);
         	System.out.println("Error! " + "Unable to close socket on port: " + getPort());
         }
+        try {
+			zk.close();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
     }
 
 
@@ -827,6 +855,17 @@ public class KVServer implements IKVServer, Watcher {
         }
         return result;
     }
+    
+    private int countKey() {
+    	File[] files = new File(this.dbPath).listFiles();
+    	int keyCount = 0;
+        for (File file: files) {
+            if (file.toString().endsWith(".kv")) {
+                keyCount += 1
+            }
+        }
+    	return keyCount;
+    }
 
 	@Override
 	public void process(WatchedEvent event) {
@@ -900,6 +939,8 @@ public class KVServer implements IKVServer, Watcher {
 						e.printStackTrace();
 					}
 					this.deleteInRangeKeyLocal(hashRange[0], hashRange[1]);
+					int load = this.countKey();
+					jsonMessage.put("numKey", Integer.toString(load));
 					jsonMessage.put("Transfer", "OFF");
                 	this.notifyECS(jsonMessage);
                     if (isNodeDeleted) {

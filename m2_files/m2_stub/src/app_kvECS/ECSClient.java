@@ -59,6 +59,7 @@ public class ECSClient implements IECSClient {
         	System.out.println(System.currentTimeMillis());
             this.addNodes(Integer.parseInt(tokens[1]), tokens[2],
                           Integer.parseInt(tokens[3]));
+            System.out.println(System.currentTimeMillis());
         	
             
         } else if (tokens[0].equals("showHashRing")) {
@@ -72,7 +73,9 @@ public class ECSClient implements IECSClient {
         } else if(tokens[0].equals("shutdown")) {
             this.shutdown();
         } else if(tokens[0].equals("addNode")) {
+        	System.out.println(System.currentTimeMillis());
             this.addNode(tokens[1], Integer.parseInt(tokens[2]));
+            System.out.println(System.currentTimeMillis());
         } else if(tokens[0].equals("removeNode")) {
         	System.out.println(System.currentTimeMillis());
         	ArrayList<String> nodeList = new ArrayList<String>();
