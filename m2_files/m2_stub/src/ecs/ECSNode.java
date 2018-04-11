@@ -18,6 +18,7 @@ public class ECSNode implements IECSNode {
     public String M2;
     public String R1;
     public String R2;
+    public int numKey;
 
     public ECSNode(String NodeName,
                    String NodeHost,
@@ -33,7 +34,8 @@ public class ECSNode implements IECSNode {
                    String M1,
                    String M2,
                    String R1,
-                   String R2) {
+                   String R2,
+                   int numKey) {
         this.nodeName = NodeName;
         this.nodeHost = NodeHost;
         this.nodePort = NodePort;
@@ -49,6 +51,7 @@ public class ECSNode implements IECSNode {
         this.M2 = M2;
         this.R1 = R1;
         this.R2 = R2;
+        this.numKey = numKey;
     }
 
     /**

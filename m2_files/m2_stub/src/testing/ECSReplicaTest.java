@@ -58,7 +58,7 @@ public class ECSReplicaTest extends TestCase {
 		this.ecs.removeZnode(h.escn);
 	}
 	
-	public void testStart() {
+	public void testStartAfterSetReplica() {
 		this.ecs = new ECS(this.configPath);
 		this.ecs.addNode("FIFO", 1024);
 		Assert.assertEquals(ecs.hashRing.size(), 1);
@@ -72,7 +72,7 @@ public class ECSReplicaTest extends TestCase {
 		this.ecs.removeZnode(h.escn);		
 	}
 	
-	public void testStop() {
+	public void testStopAfterReplica() {
 		this.ecs = new ECS(this.configPath);
 		this.ecs.addNode("FIFO", 1024);
 		Assert.assertEquals(ecs.hashRing.size(), 1);

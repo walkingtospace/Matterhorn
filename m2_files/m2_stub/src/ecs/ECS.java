@@ -82,6 +82,23 @@ public class ECS implements Watcher{
         this.createFDNode();
     }
 
+    // Look at all the Znodes and see which one has highest number of keys
+    public void dynamicLoadBalancing() {
+    	for (IECSNode esc: this.usedServers) {
+    		JSONObject nodestat = this.getJSON(esc.getNodeName());
+    		((ECSNode)esc).numKey = (int)nodestat.get("numKey");
+    	}
+    	// Find average
+    	int avgNumKey = 0;
+    	for (IECSNode esc: this.usedServers) {
+    		avgNumKey = avgNumKey + ((ECSNode)esc).numKey;
+    	}
+    	avgNumKey = avgNumKey / (this.usedServers.size());
+    	
+    	// Find the one that's most deviated
+    	
+    }
+ 
     // Purely testing purpose. Should remove after everything is done
     public void test() {
     	// Test Create Znode
@@ -430,7 +447,8 @@ public class ECS implements Watcher{
                                          "null",
                                          "null",
                                          "null",
-                                         "null");
+                                         "null",
+                                         0);
                 try{
                 	this.escnMap.put(tokens[0], sc);
                 } catch(Exception e) {
@@ -568,6 +586,7 @@ public class ECS implements Watcher{
         jsonMessage.put("M2", ((ECSNode)escn).M2);
         jsonMessage.put("R1", ((ECSNode)escn).R1);
         jsonMessage.put("R2", ((ECSNode)escn).R2);
+        jsonMessage.put("numKey", ((ECSNode)escn).numKey);
         byte[] zkData = jsonMessage.toString().getBytes();
         try {
 			this.zk.create(zkPath, zkData, ZooDefs.Ids.OPEN_ACL_UNSAFE,
