@@ -96,7 +96,42 @@ public class ECS implements Watcher{
     	avgNumKey = avgNumKey / (this.usedServers.size());
     	
     	// Find the one that's most deviated
+    	int max_dev = 0;
+    	IECSNode maxDevNode = null;
+    	for (IECSNode esc: this.usedServers) {
+    		if ((((ECSNode)esc).numKey - avgNumKey) > max_dev) {
+    			max_dev = (((ECSNode)esc).numKey - avgNumKey);
+    			maxDevNode = esc;
+    		}
+    	}
     	
+    	// Only Handle when the number of server is greater than 2 and the maxDevNode is not null
+    	if ((this.usedServers.size() > 1) && maxDevNode != null) {
+    		ECSNode maxDevNodeE = (ECSNode)maxDevNode;
+    		// the derivation is 2x the average and the derivation is greater than or equal to 10
+    		if ((maxDevNodeE.numKey > 2 * avgNumKey) && (maxDevNodeE.numKey - avgNumKey >= 10)) {
+    			// find the midpoint between the hash range
+    			String leftHash = maxDevNodeE.leftHash;
+    			String rightHash = maxDevNodeE.rightHash;
+    			BigInteger bigIntLeftHash = new BigInteger(leftHash, 16);
+    			BigInteger bigIntRightHash = new BigInteger(rightHash, 16);
+    			BigInteger mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
+    			String midHash = mid.toString(16);
+    			// find the previous ECSNode in the hashring
+    			ECSNode prevNode = null;
+    			IECSNode prevNodeI = null;
+    	    	for (IECSNode esc: this.usedServers) {
+    	    		if (((ECSNode)esc).rightHash == leftHash) {
+    	    			prevNode = ((ECSNode)esc);
+    	    			prevNodeI = esc;
+    	    		}
+    	    	}
+    	    	// change the hash ring entry
+    	    	this.updateZnodeLeftRightHashTargetNodeTransfer(maxDevNode, midHash, maxDevNodeE.rightHash, prevNode.nodeName, "ON");
+    	    	this.updateZnodeLeftRightHashTargetNodeTransfer(prevNodeI, prevNode.leftHash, midHash, "null", "ON");
+    	    	this.waitTransfer();
+    		}
+    	}
     }
  
     // Purely testing purpose. Should remove after everything is done
