@@ -398,7 +398,7 @@ public class KVServer implements IKVServer, Watcher {
 			return;
 		}
 		int newLoad = Integer.parseInt(jsonMessage.get("numKey").toString()) + loadChange;
-		jsonMessage.put("numKey", Integer.toString(newLoad));
+		jsonMessage.put("numKey", newLoad);
 		this.notifyECS(jsonMessage);
     }
     
@@ -940,7 +940,7 @@ public class KVServer implements IKVServer, Watcher {
 					}
 					this.deleteInRangeKeyLocal(hashRange[0], hashRange[1]);
 					int load = this.countKey();
-					jsonMessage.put("numKey", Integer.toString(load));
+					jsonMessage.put("numKey", load);
 					jsonMessage.put("Transfer", "OFF");
                 	this.notifyECS(jsonMessage);
                     if (isNodeDeleted) {

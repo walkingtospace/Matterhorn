@@ -77,16 +77,19 @@ public class ECS implements Watcher{
 			e.printStackTrace();
 		}
         
-        this.sshStartFD();
+//        this.sshStartFD();
 
-        this.createFDNode();
+//        this.createFDNode();
     }
 
     // Look at all the Znodes and see which one has highest number of keys
     public void dynamicLoadBalancing() {
+    	System.out.println("Running Dynamic Load Balancing");
     	for (IECSNode esc: this.usedServers) {
     		JSONObject nodestat = this.getJSON(esc.getNodeName());
-    		((ECSNode)esc).numKey = (int)nodestat.get("numKey");
+    		System.out.println(nodestat.get("numKey"));
+    		System.out.println(esc.getNodeName());
+    		((ECSNode)esc).numKey = Integer.parseInt(nodestat.get("numKey").toString());
     	}
     	// Find average
     	int avgNumKey = 0;
@@ -109,7 +112,7 @@ public class ECS implements Watcher{
     	if ((this.usedServers.size() > 1) && maxDevNode != null) {
     		ECSNode maxDevNodeE = (ECSNode)maxDevNode;
     		// the derivation is 2x the average and the derivation is greater than or equal to 10
-    		if ((maxDevNodeE.numKey > 2 * avgNumKey) && (maxDevNodeE.numKey - avgNumKey >= 10)) {
+    		if ((maxDevNodeE.numKey > avgNumKey) && (maxDevNodeE.numKey - avgNumKey >= 2)) {
     			// find the midpoint between the hash range
     			String leftHash = maxDevNodeE.leftHash;
     			String rightHash = maxDevNodeE.rightHash;
@@ -392,6 +395,7 @@ public class ECS implements Watcher{
 	        	}
 	        }	
 		}
+		System.out.println(jsonMessage);
 		/*
 		try {
 			this.zk.getData("/zookeeper", this, null);

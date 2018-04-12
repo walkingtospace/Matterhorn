@@ -101,6 +101,8 @@ public class ECSClient implements IECSClient {
             }
         } else if(tokens[0].equals("help")) {
             printHelp();
+        } else if(tokens[0].equals("loadbalance")) {
+        	ecs.dynamicLoadBalancing();
         } else {
             printError("Unknown command");
             printHelp();
