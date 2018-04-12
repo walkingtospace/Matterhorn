@@ -119,7 +119,7 @@ public class ECS implements Watcher{
     			BigInteger bigIntLeftHash = new BigInteger(leftHash, 16);
     			BigInteger bigIntRightHash = new BigInteger(rightHash, 16);
     			BigInteger mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
-    			String midHash = mid.toString(16);
+    			String midHash = mid.toString(16).toUpperCase();
     			// find the previous ECSNode in the hashring
     			ECSNode prevNode = null;
     			IECSNode prevNodeI = null;
