@@ -115,13 +115,27 @@ public class ECS implements Watcher{
     		ECSNode maxDevNodeE = (ECSNode)maxDevNode;
     		// the derivation is 2x the average and the derivation is greater than or equal to 10
     		if ((maxDevNodeE.numKey > avgNumKey) && (maxDevNodeE.numKey - avgNumKey >= 2)) {
+    			BigInteger maxHex = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
     			// find the midpoint between the hash range
     			String leftHash = maxDevNodeE.leftHash;
     			String rightHash = maxDevNodeE.rightHash;
     			BigInteger bigIntLeftHash = new BigInteger(leftHash, 16);
     			BigInteger bigIntRightHash = new BigInteger(rightHash, 16);
-    			BigInteger mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
+    			BigInteger mid = null;
+    			if (bigIntRightHash.compareTo(bigIntLeftHash) == -1) {
+    				BigInteger diff = maxHex.subtract(bigIntLeftHash);
+    				BigInteger toAdd = bigIntRightHash.add(new BigInteger("1", 10)).add(diff).divide(new BigInteger("2"));
+    				mid = bigIntLeftHash.add(toAdd);
+    				if (mid.compareTo(maxHex) == 1) {
+    					mid = mid.subtract(maxHex);
+    				}
+    			} else {
+    				System.out.println(leftHash);
+    				System.out.println(rightHash);
+    				mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
+    			}
     			String midHash = mid.toString(16).toUpperCase();
+    			System.out.println(midHash);
     			// find the previous ECSNode in the hashring
     			ECSNode prevNode = null;
     			IECSNode prevNodeI = null;
@@ -132,6 +146,8 @@ public class ECS implements Watcher{
     	    		}
     	    	}
     	    	// change the hash ring entry
+    	    	((ECSNode)maxDevNode).leftHash = midHash;
+    	    	((ECSNode)prevNodeI).rightHash = midHash;
     	    	this.updateZnodeLeftRightHashTargetNodeTransfer(maxDevNode, midHash, maxDevNodeE.rightHash, prevNode.nodeName, "ON");
     	    	this.updateZnodeLeftRightHashTargetNodeTransfer(prevNodeI, prevNode.leftHash, midHash, "null", "ON");
     	    	this.waitTransfer();
