@@ -105,17 +105,30 @@ public class ECS implements Watcher{
     		}
     	}
     	
+    	System.out.println(maxDevNode.getNodeName());
+    	
     	// Only Handle when the number of server is greater than 2 and the maxDevNode is not null
     	if ((this.usedServers.size() > 1) && maxDevNode != null) {
     		ECSNode maxDevNodeE = (ECSNode)maxDevNode;
     		// the derivation is 2x the average and the derivation is greater than or equal to 10
+    		BigInteger maxHex = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16);
     		if ((maxDevNodeE.numKey > 2 * avgNumKey) && (maxDevNodeE.numKey - avgNumKey >= 10)) {
     			// find the midpoint between the hash range
     			String leftHash = maxDevNodeE.leftHash;
     			String rightHash = maxDevNodeE.rightHash;
     			BigInteger bigIntLeftHash = new BigInteger(leftHash, 16);
     			BigInteger bigIntRightHash = new BigInteger(rightHash, 16);
-    			BigInteger mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
+    			BigInteger mid = null;
+    			if (bigIntRightHash.compareTo(bigIntLeftHash) == -1) {
+    				BigInteger diff = maxHex.subtract(bigIntLeftHash);
+    				BigInteger toAdd = bigIntRightHash.add(new BigInteger("1", 10)).add(diff).divide(new BigInteger("2"));
+    				mid = bigIntLeftHash.add(toAdd);
+    				if (mid.compareTo(maxHex) == 1) {
+    					mid = mid.subtract(maxHex);
+    				}
+    			} else {
+    				mid = bigIntLeftHash.add(bigIntRightHash).divide(new BigInteger("2"));
+    			}
     			String midHash = mid.toString(16).toUpperCase();
     			// find the previous ECSNode in the hashring
     			ECSNode prevNode = null;
