@@ -108,6 +108,8 @@ public class ECS implements Watcher{
     		}
     	}
     	
+    	System.out.println(maxDevNode.getNodeName());
+    	
     	// Only Handle when the number of server is greater than 2 and the maxDevNode is not null
     	if ((this.usedServers.size() > 1) && maxDevNode != null) {
     		ECSNode maxDevNodeE = (ECSNode)maxDevNode;
