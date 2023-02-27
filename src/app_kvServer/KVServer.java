@@ -115,43 +115,6 @@ public class KVServer implements IKVServer {
     	if (kvFile.exists()) {
     		kvFile.delete();
     	}
-//    	String newContent = "";
-//		String line = null;
-//		try {
-//            // FileReader reads text files in the default encoding.
-//            FileReader fileReader = 
-//                new FileReader(dbPath);
-//
-//            // Always wrap FileReader in BufferedReader.
-//            BufferedReader bufferedReader = new BufferedReader(fileReader);
-//
-//            while((line = bufferedReader.readLine()) != null) {
-//            	String[] pair = line.split(" ");
-//            	if (!pair[0].equals(key)) {
-//                	newContent += line + System.lineSeparator();
-//                }
-//            }
-//            bufferedReader.close();
-//            FileWriter fileWriter;
-//            BufferedWriter bufferedWriter;
-//            
-//        	fileWriter = new FileWriter(dbPath);
-//                
-//            bufferedWriter = new BufferedWriter(fileWriter);
-//            bufferedWriter.write(newContent);
-//            bufferedWriter.close();
-//            
-//        }
-//        catch(FileNotFoundException ex) {
-//        	logger.error("Error! " +
-//                "Unable to open database file '" + 
-//                dbPath + "'" + ex);                
-//        }
-//        catch(IOException ex) {
-//        	logger.error(
-//                "Error! reading file '" 
-//                + dbPath + "'");                  
-//        }
 	}
 
 	@Override
@@ -163,40 +126,6 @@ public class KVServer implements IKVServer {
         	result = true;
         }
 		return result;
-//		String line = null;
-//		boolean result = false;;
-//		try {
-//            // FileReader reads text files in the default encoding.
-//            FileReader fileReader = 
-//                new FileReader(dbPath);
-//
-//            // Always wrap FileReader in BufferedReader.
-//            BufferedReader bufferedReader = 
-//                new BufferedReader(fileReader);
-//
-//            while((line = bufferedReader.readLine()) != null) {
-//                if (line.split(" ")[0].equals(key)) {
-//                	result = true;
-//                	break;
-//                }
-//            }   
-//
-//            // Always close files.
-//            bufferedReader.close();         
-//        }
-//        catch(FileNotFoundException ex) {
-//        	logger.error("Error! " +
-//                "Unable to open database file '" + 
-//                dbPath + "'");                
-//        }
-//        catch(IOException ex) {
-//        	logger.error(
-//                "Error! reading file '" 
-//                + dbPath + "'");                  
-//        }
-//		finally {
-//			return result;
-//		}
 	}
 
 	@Override
@@ -238,41 +167,6 @@ public class KVServer implements IKVServer {
                 + key + "'" + ex);                  
         }
 		return value;
-//		String line = null;
-//		String value = null;
-//		try {
-//            // FileReader reads text files in the default encoding.
-//            FileReader fileReader = 
-//                new FileReader(dbPath);
-//
-//            // Always wrap FileReader in BufferedReader.
-//            BufferedReader bufferedReader = 
-//                new BufferedReader(fileReader);
-//
-//            while((line = bufferedReader.readLine()) != null) {
-//            	String[] pair = line.split(" ");
-//                if (pair[0].equals(key)) {
-//                	value = pair[1];
-//                	break;
-//                }
-//            }   
-//
-//            // Always close files.
-//            bufferedReader.close();         
-//        }
-//        catch(FileNotFoundException ex) {
-//        	logger.error("Error! " +
-//                "Unable to open database file '" + 
-//                dbPath + "'");                
-//        }
-//        catch(IOException ex) {
-//        	logger.error(
-//                "Error! reading file '" 
-//                + dbPath + "'");                  
-//        }
-//		finally {
-//			return value;
-//		}
 	}
 
 	@Override
@@ -313,59 +207,6 @@ public class KVServer implements IKVServer {
                 "Error! reading file '" 
                 + key + "'");                  
         }
-        
-		// String oldContent = "";
-		// String line = null;
-		// int mode = 1; // mode: 1 -> rewrite database; 0 -> append database
-		// try {
-  //           // FileReader reads text files in the default encoding.
-  //           FileReader fileReader = 
-  //               new FileReader(dbPath);
-
-  //           // Always wrap FileReader in BufferedReader.
-  //           BufferedReader bufferedReader = new BufferedReader(fileReader);
-
-  //           while((line = bufferedReader.readLine()) != null) {
-  //           	String[] pair = line.split(" ");
-  //               if (pair[0].equals(key)) {
-  //               	if (pair[1].equals(value)) {
-  //               		bufferedReader.close();
-  //               		return;
-  //               	} else {
-  //               		oldContent += key + " " + value + System.lineSeparator();
-  //               		mode = 0;
-  //               	}
-  //               } else {
-  //               	oldContent += line + System.lineSeparator();
-  //               }
-  //           }
-  //           bufferedReader.close();
-  //           FileWriter fileWriter;
-  //           BufferedWriter bufferedWriter;
-  //           String newContent;
-  //           if (mode == 0) {
-  //           	fileWriter = new FileWriter(dbPath);
-  //           	newContent = oldContent;
-                
-  //           } else {
-  //           	fileWriter = new FileWriter(dbPath, true);
-  //               newContent = key + " " + value + System.lineSeparator();
-  //           }
-  //           bufferedWriter = new BufferedWriter(fileWriter);
-  //           bufferedWriter.write(newContent);
-  //           bufferedWriter.close();
-            
-  //       }
-  //       catch(FileNotFoundException ex) {
-  //       	logger.error("Error! " +
-  //               "Unable to open database file '" + 
-  //               dbPath + "'" + ex);                
-  //       }
-  //       catch(IOException ex) {
-  //       	logger.error(
-  //               "Error! reading file '" 
-  //               + dbPath + "'");                  
-  //       }
 	}
 
 	@Override
@@ -381,15 +222,6 @@ public class KVServer implements IKVServer {
 				file.delete();
 			}
 		}
-//		try {
-//			PrintWriter writer = new PrintWriter(dbPath);
-//			writer.print("");
-//			writer.close();
-//		} catch (FileNotFoundException e) {
-//			logger.error("Error! " +
-//	                "Unable to open database file '" + 
-//	                dbPath + "'");
-//		}
 	}
 
 	@Override
