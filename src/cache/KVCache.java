@@ -15,7 +15,7 @@ public interface KVCache {
      /*
      * Delete a key in the cache
      */
-	public void delete(String key);
+	public void remove(String key);
 
      /*
       * Print the algorithm used

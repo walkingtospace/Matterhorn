@@ -28,7 +28,7 @@ public class KVFIFOCache implements KVCache {
         map.put(key, value);
     }
     
-    public synchronized void delete(String key) {
+    public synchronized void remove(String key) {
         map.remove(key);
     }
 
