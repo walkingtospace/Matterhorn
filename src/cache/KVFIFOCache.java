@@ -31,4 +31,8 @@ public class KVFIFOCache implements KVCache {
     public synchronized void delete(String key) {
         map.remove(key);
     }
+
+    public synchronized void printAlgorithm() {}
+    
+    public synchronized void printCache() {}
 }

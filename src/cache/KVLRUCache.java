@@ -32,4 +32,7 @@ public class KVLRUCache implements KVCache {
         map.remove(key);
     }
     
+    public synchronized void printAlgorithm() {}
+    
+    public synchronized void printCache() {}
 }

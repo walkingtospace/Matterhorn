@@ -60,5 +60,8 @@ public class KVLFUCache implements KVCache {
     	
     	
     }
+
+    public synchronized void printAlgorithm() {}
     
+    public synchronized void printCache() {}
 }
