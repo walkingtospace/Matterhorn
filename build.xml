@@ -37,6 +37,7 @@
     <path refid="external.jars" />
   </path>
 
+  <!-- Initializes build directory and copies non-java files to it -->
   <target name="init">
     <mkdir dir="${build.dir}"/>
     <copy includeemptydirs="false" todir="${build.dir}">
@@ -47,6 +48,7 @@
     </copy>
   </target>
 
+  <!-- Cleans build directory and jar files -->
   <target name="clean">
     <delete dir="${build.dir}"/>
     <delete file="${clientjar.file}" />
@@ -55,6 +57,7 @@
     <delete file="${servermanifest.file}" />
   </target>
 
+  <!-- Depends on clean target -->
   <target name="cleanall" depends="clean"/>
 
   <!-- build complete project -->
