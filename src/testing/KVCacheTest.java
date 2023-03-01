@@ -7,9 +7,21 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 import org.junit.Assert;
+import client.KVClient;
 
 
 public class KVCacheTest extends TestCase {
+	
+	@Test
+	public void testKVClient() {
+		KVClient kvClient = new KVClient("localhost", 50000);
+		kvClient.connect();
+		kvClient.put("key1", "val1");
+		kvClient.put("key2", "val2");
+		Assert.assertEquals("val1", kvClient.get("key1"));
+		Assert.assertEquals("val2", kvClient.get("key2"));
+		kvClient.disconnect();
+	}
 	
 	@Test
 	public void testFIFOGetSet() {
