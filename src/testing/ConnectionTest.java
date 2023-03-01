@@ -52,8 +52,21 @@ public class ConnectionTest extends TestCase {
 		assertTrue(ex instanceof IllegalArgumentException);
 	}
 	
+	public void testKVClientConstructor() {
+		Exception ex = null;
+		KVStore kvClient = new KVStore("localhost", 123456789);
+		
+		try {
+			assertEquals(kvClient.getHostName(), "localhost");
+			assertEquals(kvClient.getPort(), 123456789);
+		} catch (Exception e) {
+			ex = e; 
+		}
+		
+		assertTrue(ex instanceof IllegalArgumentException);
+	}
+	
 	
 
 	
-}
 
