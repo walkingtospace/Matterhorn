@@ -9,6 +9,7 @@ import org.apache.log4j.Level;
 import org.junit.Test;
 
 import app_kvServer.KVServer;
+import client.KVClient;
 import client.KVStore;
 import common.messages.KVMessage;
 
@@ -29,6 +30,7 @@ public class PerformanceTest extends TestCase {
 			//int serverPort = server.getPort();
 			String serverAddress = "localhost";  // TEMP
 			int serverPort = 50000;  // TEMP
+			KVClient testClient = new KVClient(serverAddress, serverPort);
 			KVStore testStore = new KVStore(serverAddress, serverPort);
 			testStore.connect();
 			System.out.println("Connected to " + serverAddress + " at port " + serverPort);
@@ -71,6 +73,10 @@ public class PerformanceTest extends TestCase {
 			System.out.println("Total Time: " + String.valueOf(timeTotal));
 			System.out.println("Average time for Get: " + String.valueOf(avgTimeGet));
 			System.out.println("Average time for Put: " + String.valueOf(avgTimePut));
+			
+			//Test KVClient constructor
+			assertTrue(testClient.getServerAddress().equals(serverAddress));
+			assertTrue(testClient.getServerPort() == serverPort);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
