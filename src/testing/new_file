@@ -1,0 +1,4 @@
+ 
+Modify: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/PerformanceTest.java:  adds a new test file to test the performance of the KVClient class and adds methods to test the performance of the KVClient class by running 1000 operations (randomly split between get and put) and measuring the average time for each type of operation. 
+
+Create: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/KVClientTest.java:  adds a new test file to test the KVClient class. This file contains methods to test the get, set, and delete methods of the KVClient class. It also contains methods to test the performance of the KVClient class by running 1000 operations (randomly split between get and put) and measuring the average time for each type of operation.
