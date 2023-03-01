@@ -1,0 +1,21 @@
+
+// new_file.java
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+public class KVClientTest {
+    KVClient client = new KVClient("localhost", 1234);
+    
+    @Test
+    public void testPut() {
+        client.put("key", "value");
+        assertEquals("value", client.get("key"));
+    }
+    
+    @Test
+    public void testDelete() {
+        client.put("key", "value");
+        client.delete("key");
+        assertNull(client.get("key"));
+    }
+}
