@@ -1,0 +1,26 @@
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.io.IOException;
+
+public class KVClient {
+    private static Logger logger = LogManager.getLogger(KVClient.class);
+
+    public static void main(String[] args) {
+        try {
+            KVStore store = new KVStore();
+
+            // Create a new key-value pair
+            store.put("key1", "value1");
+
+            // Retrieve the value associated with the key
+            String value = store.get("key1");
+
+            // Delete the key-value pair
+            store.delete("key1");
+        } catch (IOException e) {
+            logger.error("Error occurred while connecting to the store.", e);
+        }
+    }
+}
