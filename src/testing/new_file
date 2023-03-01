@@ -1,0 +1,4 @@
+ 
+Modify: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/ConnectionTest.java:  adds two new files that test the KVClient's ability to connect, set and get values, delete values, and handle exceptions, as well as measure its performance. 
+
+Create: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/KVClientTest.java: a new test file for KVClient.java that tests the KVClient's ability to connect, set and get values, delete values, and handle exceptions, as well as measure its performance.
