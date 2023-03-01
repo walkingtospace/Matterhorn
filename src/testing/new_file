@@ -1,0 +1,4 @@
+
+Modify: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/PerformanceTest.java:  adds a test case to measure the performance of the new file.
+
+Create new file: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/KVClientTest.java:  adds test code to measure the performance of KVClient.js.
