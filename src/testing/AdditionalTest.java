@@ -12,6 +12,9 @@ import common.messages.KVMessage.StatusType;
 
 import junit.framework.TestCase;
 
+/**
+ * Test class for additional methods used by the KVServer and KVClient
+ */
 public class AdditionalTest extends TestCase {
 	
 	private KVServer kvServer;

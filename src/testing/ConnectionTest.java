@@ -22,6 +22,7 @@ public class ConnectionTest extends TestCase {
 		}	
 		
 		assertNull(ex);
+		//Test connection success by attempting to connect to a valid host and port
 	}
 	
 	
@@ -36,6 +37,7 @@ public class ConnectionTest extends TestCase {
 		}
 		
 		assertTrue(ex instanceof UnknownHostException);
+		//Test connection failure by attempting to connect to an unknown host
 	}
 	
 	
