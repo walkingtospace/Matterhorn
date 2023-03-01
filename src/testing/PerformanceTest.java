@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import app_kvServer.KVServer;
 import client.KVStore;
+import client.KVClient;
 import common.messages.KVMessage;
 
 public class PerformanceTest extends TestCase {
@@ -31,6 +32,8 @@ public class PerformanceTest extends TestCase {
 			int serverPort = 50000;  // TEMP
 			KVStore testStore = new KVStore(serverAddress, serverPort);
 			testStore.connect();
+			KVClient testClient = new KVClient(serverAddress, serverPort);
+			testClient.connect();
 			System.out.println("Connected to " + serverAddress + " at port " + serverPort);
 			int numGets = 0;
 			int numPuts = 0;
@@ -38,6 +41,14 @@ public class PerformanceTest extends TestCase {
 			double getTime = 0;
 			KVMessage message;
 			System.out.println("Performing benchmark on 1000 operations");
+			
+			// Add two key-value pairs
+			testClient.put("testKey1", "testValue1");
+			testClient.put("testKey2", "testValue2");
+			
+			// Assert that the values can be retrieved properly
+			assertEquals("testValue1", testClient.get("testKey1"));
+			assertEquals("testValue2", testClient.get("testKey2"));
 			
 			for (int i = 0; i < 1000; i++) {
 				int randInt = (int)(Math.random() * 1000 % 10);
