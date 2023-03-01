@@ -1,0 +1,4 @@
+
+Modify: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/ConnectionTest.java:  adds tests to check the success of establishing a connection, the connection to an unknown host, and illegal port connection for the KVClient. 
+
+Create: /tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/testing/KVClientTest.java:  This new file will test the functionality and performance of the KVClient. The tests will include validating the connection, testing the get and put operations, and benchmarking the performance of the KVClient.
