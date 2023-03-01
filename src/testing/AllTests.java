@@ -9,7 +9,9 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import logger.LogSetup;
 
-
+/**
+ * This class is used to run all tests for the KVServer
+ */
 public class AllTests {
 
 	static {
