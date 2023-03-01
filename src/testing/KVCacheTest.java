@@ -7,9 +7,16 @@ import junit.framework.TestCase;
 
 import org.junit.Test;
 import org.junit.Assert;
-
+import client.KVClient;
 
 public class KVCacheTest extends TestCase {
+	
+	@Test
+	public void testClient() {
+		KVClient client = new KVClient("localhost", 8080);
+		Assert.assertEquals("localhost", client.getHostname());
+		Assert.assertEquals(8080, client.getPort());
+	}
 	
 	@Test
 	public void testFIFOGetSet() {
