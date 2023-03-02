@@ -12,11 +12,20 @@ import common.messages.KVMessage.StatusType;
 
 import junit.framework.TestCase;
 
+/**
+ * This class contains a set of JUnit tests for a key-value storage system,
+ * including tests for clearing, checking for existence, and deleting key-value
+ * pairs, as well as a test for the user interface and for handling spaces in
+ * keys.
+ */
 public class AdditionalTest extends TestCase {
 	
 	private KVServer kvServer;
 	private KVStore kvClient;
 
+	/**
+	 * This method sets up the server and client objects for testing.
+	 */
 	public void setUp() {
 		kvClient = new KVStore("localhost", 50000);
 		try {
@@ -25,10 +34,16 @@ public class AdditionalTest extends TestCase {
 		}
 	}
 
+	/**
+	 * This method disconnects the client from the server.
+	 */
 	public void tearDown() {
 		kvClient.disconnect();
 	}
 
+	/**
+	 * This test checks if the clearStorage() method works correctly.
+	 */
 	@Test
 	public void testClearStorage() {
 		kvServer = new KVServer(1234, 1234, "LRU");
@@ -48,6 +63,9 @@ public class AdditionalTest extends TestCase {
 		assertTrue(ex == null && response1 == false && response2 == false);
 	}
 	
+	/**
+	 * This test checks if the inStorage() method works correctly.
+	 */
 	@Test
 	public void testInStorage() {
 		kvServer = new KVServer(1234, 1234, "LRU");
@@ -65,6 +83,9 @@ public class AdditionalTest extends TestCase {
 		assertTrue(ex == null && response1 == true && response2 == false);
 	}
 	
+	/**
+	 * This test checks if the deleteKV() method works correctly.
+	 */
 	@Test
 	public void testDeleteKV() {
 		kvServer = new KVServer(1234, 1234, "LRU");
@@ -81,6 +102,9 @@ public class AdditionalTest extends TestCase {
 		assertTrue(ex == null && response == false);
 	}
 	
+	/**
+	 * This test checks if the user interface works correctly.
+	 */
 	@Test
 	public void testShellUI() {
 		// Test connect command
@@ -93,6 +117,10 @@ public class AdditionalTest extends TestCase {
 		assertTrue(response == false);
 	}
 	
+	/**
+	 * This test checks if the put() method works correctly with keys that contain
+	 * spaces.
+	 */
 	@Test
 	public void testPutWithSpace() {
 		String key = "space";

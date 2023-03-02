@@ -14,37 +14,37 @@ public class ConnectionTest extends TestCase {
 		
 		Exception ex = null;
 		
-		KVStore kvClient = new KVStore("localhost", 50000);
+		KVStore kvClient = new KVStore("localhost", 50000); // Create a new key-value store client object
 		try {
-			kvClient.connect();
+			kvClient.connect(); // Attempt to connect to the store
 		} catch (Exception e) {
 			ex = e;
 		}	
 		
-		assertNull(ex);
+		assertNull(ex); // Assert that no exception was thrown
 	}
 	
 	
 	public void testUnknownHost() {
 		Exception ex = null;
-		KVStore kvClient = new KVStore("unknown", 50000);
+		KVStore kvClient = new KVStore("unknown", 50000); // Create a new key-value store client object with an unknown host
 		
 		try {
-			kvClient.connect();
+			kvClient.connect(); // Attempt to connect to the store
 		} catch (Exception e) {
 			ex = e; 
 		}
 		
-		assertTrue(ex instanceof UnknownHostException);
+		assertTrue(ex instanceof UnknownHostException); // Assert that an UnknownHostException was thrown
 	}
 	
 	
 	public void testIllegalPort() {
 		Exception ex = null;
-		KVStore kvClient = new KVStore("localhost", 123456789);
+		KVStore kvClient = new KVStore("localhost", 123456789); // Create a new key-value store client object with an illegal port
 		
 		try {
-			kvClient.connect();
+			kvClient.connect(); // Attempt to connect to the store
 		} catch (Exception e) {
 			ex = e; 
 		}
