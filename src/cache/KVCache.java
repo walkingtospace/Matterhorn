@@ -11,6 +11,11 @@ public interface KVCache {
      * Set the given cache key to the given value
      */
 	public void set(String key, String value);
+    
+     /*
+     * Get the size of the cache
+     */
+     public int getSize();
 	
      /*
      * Delete a key in the cache
