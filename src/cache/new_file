@@ -1,0 +1,13 @@
+Okay, here is the code to create a new file called KVKenCache.java that implements the KVCache interface:
+
+```
+public class KVKenCache implements KVCache {
+    // implementation of KVCache methods goes here
+}
+```
+
+Make sure to save this file in the same directory as the other cache files, which is `/tmp/Matterhorn/walkingtospace-Matterhorn-f42bac9/src/cache/`.
+
+Also, note that the KVCache interface has methods for getting, setting, and removing key-value pairs, as well as printing the cache and the algorithm used. Make sure to implement these methods in your new file.
+
+Let me know if you need any further assistance!
