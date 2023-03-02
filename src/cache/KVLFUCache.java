@@ -68,4 +68,12 @@ public class KVLFUCache implements KVCache {
     	
     	
     }
-}
+    
+    public synchronized int getSize(){
+        return mainMap.size();
+    }
+    	countListMap.get(count).remove(key);
+    	countMap.remove(key);
+    	mainMap.remove(key);
+    	
+    	
