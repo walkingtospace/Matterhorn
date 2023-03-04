@@ -62,7 +62,7 @@
     <echo message="${ant.project.name}: ${ant.file}"/>
     <javac debug="true" debuglevel="${debuglevel}" destdir="bin"
           source="${source}" target="${target}"
-          classpathref="project.classpath" includeantruntime="false">
+          classpathref="project.classpath" includeantruntime="true">
       <src path="${src.dir}"/>
     </javac>
   </target>
