@@ -9,7 +9,10 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 import logger.LogSetup;
 
-
+/**
+ * AllTests class is a test suite that runs all the tests
+ * for the basic storage server.
+ */
 public class AllTests {
 
 	static {
