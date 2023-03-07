@@ -19,16 +19,14 @@ public class PerformanceTest extends TestCase {
 		// Variables to modify for different test benchmarks.
 		int cacheCapacity = 10;
 		String cacheStrategy = "FIFO";
-		//KVServer server = null;
+		KVServer server = null;
 		try {
 			new LogSetup("logs/testing/test.log", Level.ERROR);
-			//server = new KVServer(50000, cacheCapacity, cacheStrategy);
+			server = new KVServer(50000, cacheCapacity, cacheStrategy);
 			// Server run should start a separate thread.
-			//server.run();
-			//String serverAddress = server.getHostname();
-			//int serverPort = server.getPort();
-			String serverAddress = "localhost";  // TEMP
-			int serverPort = 50000;  // TEMP
+			server.run();
+			String serverAddress = server.getHostname();
+			int serverPort = server.getPort();
 			KVStore testStore = new KVStore(serverAddress, serverPort);
 			testStore.connect();
 			System.out.println("Connected to " + serverAddress + " at port " + serverPort);
