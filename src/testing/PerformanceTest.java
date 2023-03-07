@@ -72,6 +72,30 @@ public class PerformanceTest extends TestCase {
 			System.out.println("Average time for Get: " + String.valueOf(avgTimeGet));
 			System.out.println("Average time for Put: " + String.valueOf(avgTimePut));
 			
+			// Added new tests
+			int numDeletes = 0;
+			double deleteTime = 0;
+			for (int i = 0; i < 1000; i++) {
+				int randInt = (int)(Math.random() * 1000 % 10);
+				boolean deleteOp = randInt >= 5 ? true : false;
+				
+				if (deleteOp) {
+					numDeletes++;
+					System.out.println("Performing delete() operation.");
+					Timestamp startTime = new Timestamp(System.currentTimeMillis());
+					String testKey = String.valueOf((int)(Math.random() * 200));
+					message = testStore.delete(testKey);
+					System.out.println("Server response: " + message.toString());
+					Timestamp endTime = new Timestamp(System.currentTimeMillis());
+					deleteTime += endTime.getTime() - startTime.getTime();
+				}
+			}
+			
+			double avgTimeDelete = deleteTime / numDeletes;
+			timeTotal += deleteTime;
+			System.out.println("Total Time: " + String.valueOf(timeTotal));
+			System.out.println("Average time for Delete: " + String.valueOf(avgTimeDelete));
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
